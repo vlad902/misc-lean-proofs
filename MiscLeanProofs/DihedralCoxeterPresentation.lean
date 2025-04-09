@@ -61,7 +61,7 @@ theorem abx_a_aby {n : ℕ} {x y : ℤ} :
     simp only [mul_inv_rev, b_inv_eq_b, inv_mul_cancel_right, ← mul_assoc, one_mul, b_mul_b]
     simp_all [← mul_assoc]
 
-theorem word_equiv {n : ℕ} (x : dihedralPresentation n) :
+theorem word_eq {n : ℕ} (x : dihedralPresentation n) :
     ∃ z : ℤ, x = r^z ∨ x = a * r^(z-1) := by
   apply PresentedGroup.induction_on x <| fun z ↦ ?_
   induction z using FreeGroup.induction_on with
@@ -81,7 +81,7 @@ theorem word_equiv {n : ℕ} (x : dihedralPresentation n) :
     · use mx+my; simp [h₁, h₂, ← zpow_add, mul_assoc, ← zpow_add, sub_add_eq_add_sub]
     · use my-mx; simp [h₁, h₂, ← mul_assoc, abx_a_aby, mul_assoc _ (_ ^ (mx - 1))]
 
-def equivDihedralGroup {n : ℕ} : dihedralPresentation n ≃* DihedralGroup n where
+def mulEquivDihedralGroup {n : ℕ} : dihedralPresentation n ≃* DihedralGroup n where
   toFun :=
     PresentedGroup.toGroup (f := fun | .a => .sr 1 | .b => .sr 1 * .r 1)
       (by rintro _ (_ | (_ | _)) <;> simp_all [sq])
@@ -90,7 +90,7 @@ def equivDihedralGroup {n : ℕ} : dihedralPresentation n ≃* DihedralGroup n w
     | .sr j => a * r^((j.cast : Int) - 1)
   left_inv := by
     intro x
-    obtain ⟨y, (h | h)⟩ := word_equiv x <;> simp [h, ZMod.coe_intCast]
+    obtain ⟨y, (h | h)⟩ := word_eq x <;> simp [h, ZMod.coe_intCast]
     · exact Eq.symm (zpow_eq_zpow_emod' y r_pow_n)
     · apply mul_left_inj r |>.mp
       simp only [mul_zpow_self, sub_add_cancel]
