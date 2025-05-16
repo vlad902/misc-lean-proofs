@@ -9,9 +9,6 @@ import Mathlib.Tactic.Rify
 
 open Real Filter Topology
 
--- #22806
-instance : Fact ((0 : ℝ) ≤ 1) := Fact.Manifold.instLeReal
-
 noncomputable abbrev fn (x : ℝ) : ℝ × ℝ := ⟨x, sin x⁻¹⟩
 abbrev fn_domain := Set.Ioi (0 : ℝ)
 abbrev curve := fn '' fn_domain ∪ {0}
@@ -124,4 +121,4 @@ theorem not_path_connected : ¬IsPathConnected curve := by
   have path_xinv := curve₁_zero_lt (path_mem xinv) (by simp [hxinv₂, hx₁])
   rw [hxinv₂, hx₂] at path_xinv
   specialize hδ₂ xinv dist_xinv
-  simp [path_xinv] at hδ₂
+  simp [dist, path_xinv] at hδ₂
