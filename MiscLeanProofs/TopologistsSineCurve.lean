@@ -85,8 +85,7 @@ lemma normalize_path {X : Type*} [TopologicalSpace X] [T1Space X] {x y : X} {F :
     nlinarith [unitInterval.one_minus_nonneg xSup, this, show 0 < (i : ℝ) from hi]
 
 lemma curve₁_zero_lt {x : ℝ × ℝ} (h₁ : x ∈ curve) (h₂ : 0 < x.1) : x = (x.1, sin (x.1)⁻¹) := by
-  simp only [fn, Prod.mk_zero_zero, Set.Icc_self, Set.union_singleton, Set.mem_insert_iff,
-    Set.mem_image] at h₁
+  simp only [fn,Set.union_singleton, Set.mem_insert_iff, Set.mem_image] at h₁
   rcases h₁ with h | ⟨y, ⟨hy₁, hy₂⟩⟩
   · exfalso
     have : x.1 = 0 := (Prod.ext_iff.mp h).1
@@ -112,7 +111,7 @@ theorem not_path_connected : ¬IsPathConnected curve := by
   have : ∃ xinv, (0 < xinv ∧ xinv < δstep) ∧ (path xinv).1 = x := by
     have := intermediate_value_Ioo (le_of_lt δstep_gt) <|
       (continuous_fst.comp path.continuous).continuousOn
-    simp only [Function.comp_apply, path.source, Prod.fst_zero] at this
+    simp only [Function.comp_apply, path.source] at this
     exact this hx₁
   obtain ⟨xinv, hxinv₁, hxinv₂⟩ := this
   have dist_xinv : dist xinv 0 < δ := by

@@ -46,15 +46,15 @@ theorem abx_a_aby {n : ℕ} {x y : ℤ} :
   rw [a_inv_eq_a, ← mul_assoc, ← zpow_neg, neg_sub, mul_assoc, ← zpow_add, add_sub_cancel]
   suffices (@a n) * ((a * b) ^ x * a * (a * b) ^ x) = 1 by simpa [← mul_assoc] using this
   induction x with
-  | hz => simp
-  | hp i _ =>
+  | zero => simp
+  | succ i _ =>
     suffices (@a n) * ((a*b) ^ i * ((a*b) * a * (a*b)) * (a*b) ^ i) = 1 by
       nth_rw 2 [add_comm]
       simpa [← mul_assoc, zpow_add] using this
-    suffices ((@a n)*b) * a * (a*b) = a by simp_all [this]
+    suffices ((@a n)*b) * a * (a*b) = a by simp_all
     suffices (@a n) * b * a * (a * b) = a * (b * (a * a) * b) by simp [this]
     repeat rw [mul_assoc]
-  | hn i _ =>
+  | pred i _ =>
     suffices (@a n) * (((a*b) ^ i)⁻¹ * ((a*b)⁻¹ * a * (a*b)⁻¹) * ((a*b) ^ i)⁻¹) = 1 by
       nth_rw 2 [neg_sub_comm]
       simpa [← mul_assoc, zpow_sub] using this
@@ -66,15 +66,15 @@ theorem word_eq {n : ℕ} (x : dihedralPresentation n) :
   apply PresentedGroup.induction_on x <| fun z ↦ ?_
   induction z using FreeGroup.induction_on with
   | C1 => use 0; simp
-  | Cp x =>
+  | of x =>
     rcases x
     · use 1; right; simp only [sub_self, zpow_zero, mul_one]; rfl
     · use 2; right; simp only [Int.reduceSub, zpow_one, ← mul_assoc, a_mul_a, one_mul]; rfl
-  | Ci x h =>
+  | inv_of x h =>
     rcases h with ⟨m, (h | h)⟩
     · use -m; simp [h]
     · use m; simp [h, inv_mul_eq_iff_eq_mul, ← mul_assoc, abx_a_aby]
-  | Cm x y hx hy =>
+  | mul x y hx hy =>
     rcases hx, hy with ⟨⟨mx, (h₁ | h₁)⟩, ⟨my, (h₂ | h₂)⟩⟩
     · use mx+my; simp [h₁, h₂, zpow_add]
     · use my-mx; simp [h₁, h₂, ← mul_assoc, abx_a_aby, tsub_right_comm]

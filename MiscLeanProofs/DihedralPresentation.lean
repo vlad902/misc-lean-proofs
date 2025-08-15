@@ -35,13 +35,13 @@ theorem rinv_s_rinv {n : ℕ} : r⁻¹ * s * r⁻¹ = (@s n)⁻¹ := by
 
 theorem rm_s_rm {n : ℕ} (m : ℤ) : (@r n)^m * s * r^m = s⁻¹ := by
   induction m with
-  | hz => simp [s_inv_eq]
-  | hp i _ =>
+  | zero => simp [s_inv_eq]
+  | succ i _ =>
     suffices r ^ i * (r * s * r) * r ^ i = s⁻¹ by
       nth_rw 2 [add_comm]
       simpa [← mul_assoc, zpow_add] using this
     simp_all [rsr, s_inv_eq]
-  | hn i _ =>
+  | pred i _ =>
     suffices (r ^ i)⁻¹ * (r⁻¹ * s * r⁻¹) * (r ^ i)⁻¹ = s⁻¹ by
       nth_rw 2 [neg_sub_comm]
       simpa [← mul_assoc, zpow_sub] using this
@@ -57,15 +57,15 @@ theorem word_eq {n : ℕ} (x : dihedralPresentation n) : ∃ z : ℤ, x = r^z �
   apply PresentedGroup.induction_on x <| fun z ↦ ?_
   induction z using FreeGroup.induction_on with
   | C1 => use 0; simp
-  | Cp x =>
+  | of x =>
     rcases x
     · use 0; right; simp_all only [zpow_zero, mul_one]; rfl
     · use 1; left; simp_all only [zpow_one]; rfl
-  | Ci x h =>
+  | inv_of x h =>
     rcases h with ⟨m, (_ | _)⟩
     · use -m; simp_all
     · use m; simp_all [inv_mul_eq_iff_eq_mul, ← mul_assoc, rm_s_rm]
-  | Cm x y hx hy =>
+  | mul x y hx hy =>
     rcases hx, hy with ⟨⟨mx, (_ | _)⟩, ⟨my, (_ | _)⟩⟩
     · use mx+my; simp_all [zpow_add]
     · use my-mx; simp_all [← mul_assoc, rx_s_ry]
