@@ -3,54 +3,6 @@ import Mathlib.Algebra.Group.Submonoid.BigOperators
 import Mathlib.Combinatorics.SimpleGraph.Acyclic
 import Mathlib.GroupTheory.FreeGroup.Reduce
 
--- #26838
-@[simp]
-theorem List.scanr_ne_nil {α : Type u_1} {β : Type u_2} (f : α → β → β) (b : β) (l : List α) : List.scanr f b l ≠ [] := by
-  simp [List.scanr]
-
-@[simp]
-theorem List.scanr_length {α : Type u_1} {β : Type u_2} (f : α → β → β) (b : β) (l : List α) : (List.scanr f b l).length = l.length + 1 := by
-  induction l <;> simp_all
-
-@[simp]
-theorem List.scanr_nil_iff {α : Type u_1} {β : Type u_2} (f : α → β → β) (b : β) (l : List α) : List.scanr f b l = [b] ↔ l = [] := by
-  constructor
-  · cases l <;> simp_all [List.scanr_ne_nil]
-  · simp_all
-
-@[simp]
-theorem List.scanr_tail {α : Type u_1} {β : Type u_2} (f : α → β → β) (b : β) (l : List α) (h : 0 < l.length) :
-    (l.scanr f b).tail = (l.tail).scanr f b := by
-  induction l <;> simp_all
-
-@[simp]
-theorem List.scanr_head {α : Type u_1} {β : Type u_2} (f : α → β → β) (b : β) (l : List α) :
-    (l.scanr f b).head (by simp) = l.foldr f b := by
-  induction l <;> simp_all
-
-@[simp]
-theorem List.scanr_drop {α : Type u_1} {β : Type u_2} (f : α → β → β) (b : β) (l : List α) (n : Nat)
-    (h : n < l.length + 1) :
-    (l.scanr f b).drop n = (l.drop n).scanr f b := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-      rw [← List.drop_drop]
-      simp [ih (by omega), List.scanr_tail f b (l.drop n) (by simp; omega)]
-
-@[simp]
-theorem List.scanr_getElem {α : Type u_1} {β : Type u_2} (f : α → β → β) (b : β) (l : List α) (n : Nat)
-    (h : n < l.length + 1) :
-    (l.scanr f b)[n]'(by simp_all) = (l.drop n).foldr f b := by
-  induction l generalizing n with
-  | nil => simp_all
-  | cons head tail ih =>
-      by_cases h' : n = 0
-      · simp_all
-      · rw [List.length_cons] at h
-        obtain ⟨m, rfl⟩ := Nat.exists_eq_succ_of_ne_zero h'
-        simp_all [ih m (by omega)]
-
 -- #25812
 lemma List.chain'_getElem {α : Type u} {R : α → α → Prop} {l : List α} (h : List.Chain' R l) (n : ℕ) (h' : n + 1 < l.length) :
     R l[n] l[n+1] :=

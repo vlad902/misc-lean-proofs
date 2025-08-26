@@ -156,7 +156,7 @@ theorem cayleyGraph_isFreeGroup_of_IsTree [DecidableEq S] (h₁ : CG.Graph.IsTre
         Prod.swap_prod_mk, and_true, false_or, not_not] at h''
       contrapose h''
       simp only [hp]
-      repeat rw [List.scanr_getElem (h := by omega), ← List.prod_eq_foldr]
+      repeat rw [List.getElem_scanr, ← List.prod_eq_foldr]
       repeat rw [List.prod_drop_succ (p := by omega)]
       simp only [List.getElem_map, ← mul_assoc, right_eq_mul]
       simp only [aux]
