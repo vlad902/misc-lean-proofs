@@ -1,8 +1,3 @@
-/-
-TODO:
-- @[to_additive]
--/
-
 import Mathlib.Algebra.Group.Pointwise.Set.Finite
 import Mathlib.Data.Set.Card
 import Mathlib.GroupTheory.FreeGroup.IsFreeGroup
@@ -11,14 +6,16 @@ import MiscLeanProofs.CayleyGraphHelperLemmas
 /-!
 # Cayley Graphs
 
-Define a Cayley graph as a group with a generating set that does not include the identity,
-this is to satisfy representing the graph as a SimpleGraph.
+Define a Cayley graph as a group with a generating set that does not include the identity
+to satisfy representing the graph as a SimpleGraph.
 
-Then prove basic properties, mostly showing that Cayley graphs of free groups are trees and
-that Cayley graphs of trees (with an additional condition on the generating set) represent
-free groups.
+Then prove conditions under which Cayley graphs are connected/trees/locally finite.
+Also show that Cayley Graphs of FreeGroups are trees and some basic properties of isomorphisms.
 
 Follows Clara Löh's Geometric Group Theory chapter 3.
+
+## TODO
+- @[to_additive]
 -/
 
 open SimpleGraph
@@ -38,7 +35,7 @@ variable {G : Type*} [Group G] {S : Set G} (CG : CayleyGraph G S)
 
 def Graph : SimpleGraph G where
   Adj x y := x * y⁻¹ ∈ S ∨ y * x⁻¹ ∈ S
-  symm _ _ h := Or.symm h
+  symm _ _ h := h.symm
   loopless _ := by simp [CG.one_not_mem]
 
 theorem adj_iff {x y} : CG.Graph.Adj x y ↔ x * y⁻¹ ∈ S ∨ y * x⁻¹ ∈ S := by
