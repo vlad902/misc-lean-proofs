@@ -14,16 +14,14 @@ lemma List.chain'_of_not {α : Type u} {R : α → α → Prop} {l : List α} (h
   induction l with
   | nil => simp
   | cons head tail ih =>
-      rw [List.chain'_cons']
-      constructor
+      refine List.chain'_cons'.mpr ⟨fun y yh ↦ ?_, ?_⟩
       · by_cases h' : tail.length = 0
-        · simp [List.eq_nil_iff_length_eq_zero.mpr h']
-        · intro y yh
-          simp only [head?_eq_getElem?, Option.mem_def] at yh
+        · simp [List.eq_nil_iff_length_eq_zero.mpr h'] at yh
+        · simp only [head?_eq_getElem?, Option.mem_def] at yh
           obtain ⟨_, rfl⟩ := List.getElem?_eq_some_iff.mp yh
           have := h 0 (by rw [List.length_cons]; omega)
           rwa [List.getElem_cons_zero] at this
-      · refine ih (fun n h' => ?_)
+      · refine ih (fun n h' ↦ ?_)
         have := h (n + 1) (by rw [List.length_cons]; omega)
         simpa using this
 
@@ -36,11 +34,10 @@ variable {L L₁ L₂ : List (α × Bool)}
 theorem exists_of_not_reduced [DecidableEq α] (h : ¬IsReduced L) : ∃ n, n + 1 < L.length ∧ FreeGroup.mk (L.take n) = FreeGroup.mk (L.take (n + 2)) := by
   obtain ⟨n, hn₁, hn₂⟩ := List.chain'_of_not h
   refine ⟨n, by omega, ?_⟩
-  conv => rhs; rw [← FreeGroup.reduce.self]
-  rw [List.take_add, ← FreeGroup.reduce_append_reduce_reduce, FreeGroup.reduce.self]
-  rw [← List.getElem_cons_drop (by omega), List.take_succ_cons, ← List.getElem_cons_drop (by omega), List.take_succ_cons]
+  conv => rhs; rw [← reduce.self, List.take_add, ← reduce_append_reduce_reduce, reduce.self]
+  repeat rw [← List.getElem_cons_drop (by omega), List.take_succ_cons]
   simp only [List.take_zero, reduce.cons, reduce_nil]
-  split <;> simp_all [FreeGroup.reduce.self]
+  split <;> simp_all [reduce.self]
 
 end FreeGroup
 
@@ -48,10 +45,10 @@ namespace Submonoid
 
 theorem exists_list_of_mem_closure_iff [Monoid M] {s : Set M} {x : M} :
     x ∈ closure s ↔ ∃ l : List M, (∀ y ∈ l, y ∈ s) ∧ l.prod = x := by
-  refine ⟨fun hx => ?_, fun ⟨l, hl₁, hl₂⟩ => ?_⟩
+  refine ⟨fun hx ↦ ?_, fun ⟨l, hl₁, hl₂⟩ ↦ ?_⟩
   · rwa [← SetLike.mem_coe, closure_eq_image_prod, Set.mem_image] at hx
   · rw [← hl₂]
-    exact list_prod_mem (closure s) <| fun x hx => mem_closure.mpr fun S a => a (hl₁ x hx)
+    exact list_prod_mem (closure s) <| fun x hx ↦ mem_closure.mpr fun S a ↦ a (hl₁ x hx)
 
 end Submonoid
 
@@ -113,7 +110,7 @@ theorem IsTree.isPath_of_list_chain {V : Type u} {G : SimpleGraph V} (hG : G.IsT
         rw [edges_cons] at hL
         have hcc := List.chain'_cons'.mp hL
         refine (cons_isPath_iff head tail).mpr ⟨ih hcc.2, ?_⟩
-        rcases show tail.length = 0 ∨ 0 < tail.length by omega with h' | h'
+        rcases tail.length.eq_zero_or_pos with h' | h'
         · simp [SimpleGraph.Walk.nil_iff_support_eq.mp (nil_iff_length_eq.mpr h'), head.ne]
         · by_contra hh
           apply hG.IsAcyclic (cons head (tail.takeUntil u' hh))
