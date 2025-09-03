@@ -1,3 +1,8 @@
+/-
+TODO:
+- @[to_additive]
+-/
+
 import Mathlib.Algebra.Group.Pointwise.Set.Finite
 import Mathlib.Data.Set.Card
 import Mathlib.GroupTheory.FreeGroup.IsFreeGroup
@@ -39,6 +44,39 @@ def Graph : SimpleGraph G where
 theorem adj_iff {x y} : CG.Graph.Adj x y ↔ x * y⁻¹ ∈ S ∨ y * x⁻¹ ∈ S := by
   constructor <;> exact id
 
+def pushforward_group {H : Type*} [Group H] (e : G ≃* H) (CG : CayleyGraph G S) : CayleyGraph H (e '' S) :=
+  ⟨fun ⟨s, hsS, hs⟩ ↦
+    have : s = (1 : G) := by simpa [MulEquiv.map_one] using hs
+    CG.one_not_mem (this ▸ hsS)⟩
+
+def iso_of_mulEquiv {H : Type*} [Group H] (e : G ≃* H) :
+    CG.Graph ≃g (pushforward_group e CG).Graph where
+  toFun := e
+  invFun := e.symm
+  left_inv := e.left_inv
+  right_inv := e.right_inv
+  map_rel_iff' {x y} := by
+    refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
+    · rcases h with ⟨s, hsS, hs⟩ | ⟨s, hsS, hs⟩
+      · have : e (x * y⁻¹) = e s := by simpa using hs.symm
+        simp [adj_iff, Set.mem_of_eq_of_mem (e.injective this) hsS]
+      · have : e (y * x⁻¹) = e s := by simpa using hs.symm
+        simp [adj_iff, Set.mem_of_eq_of_mem (e.injective this) hsS]
+    · rcases h with h' | h'
+      · exact Or.inl ⟨x * y⁻¹, h', by simp [MulEquiv.map_mul, MulEquiv.map_inv]⟩
+      · exact Or.inr ⟨y * x⁻¹, h', by simp [MulEquiv.map_mul, MulEquiv.map_inv]⟩
+
+def pushforward_generators {S₁ S₂ : Set G} (CG : CayleyGraph G S₁) (h : S₁ = S₂) : CayleyGraph G S₂ :=
+  ⟨h ▸ CG.one_not_mem⟩
+
+def iso_of_eq {S₁ S₂ : Set G} (CG : CayleyGraph G S₁) (h : S₁ = S₂) :
+    CG.Graph ≃g (pushforward_generators CG h).Graph where
+  toFun := id
+  invFun := id
+  left_inv := fun _ ↦ rfl
+  right_inv := fun _ ↦ rfl
+  map_rel_iff' {x y} := by simp [h, Graph]
+
 variable {CG : CayleyGraph G S}
 
 theorem walk_darts_mul_mem {v w : G} (p : CG.Graph.Walk v w) :
@@ -72,8 +110,8 @@ theorem connected_iff : CG.Graph.Connected ↔ Subgroup.closure S = ⊤ := by
     have := reachable_iff_exists_list.mp <| h.preconnected x 1
     exact Subgroup.exists_list_of_mem_closure_iff.mpr (by simpa using this)
   · refine { preconnected := fun v w ↦ ?_, nonempty := by use 1 }
-    suffices ∀ (u : G), CG.Graph.Reachable 1 u by exact (this v).symm.trans (this w)
-    exact fun u ↦ reachable_iff_exists_list.mpr <|
+    suffices ∀ (u : G), CG.Graph.Reachable 1 u from (this v).symm.trans (this w)
+    exact fun _ ↦ reachable_iff_exists_list.mpr <|
       Subgroup.exists_list_of_mem_closure_iff.mp (by simp [h])
 
 def neighborSetMap (CG : CayleyGraph G S) (v : G) (x : (S ∪ S⁻¹ : Set G)) : CG.Graph.neighborSet v :=
@@ -89,22 +127,22 @@ theorem bijective_neighborSetMap (CG : CayleyGraph G S) (v : G) :
   · exact Set.LeftInvOn.injOn (f₁' := inv) (fun x _ ↦ by simp [neighborSetMap, inv])
   · exact Set.LeftInvOn.surjOn (f := inv) (fun x _ ↦ by simp [neighborSetMap, inv]) (by simp)
 
+noncomputable instance [Finite S] : CG.Graph.LocallyFinite := by
+  letI : Finite (S⁻¹ : Set G) := Set.finite_inv.mpr (by assumption)
+  exact fun v ↦ Set.Finite.fintype <| Finite.ofBijective <| bijective_neighborSetMap CG v
+
 theorem neighborSet_ncard (CG : CayleyGraph G S)  (v : G) :
     (CG.Graph.neighborSet v).ncard = (S ∪ S⁻¹).ncard := by
   suffices (CG.Graph.neighborSet v).encard = (S ∪ S⁻¹ : Set G).encard by simp [Set.ncard_def, this]
   have := Set.univ.encard_preimage_of_bijective (bijective_neighborSetMap CG v) |>.symm
   simpa using this
 
-noncomputable instance [Finite S] : CG.Graph.LocallyFinite := by
-  intro v
-  letI : Finite (S⁻¹ : Set G) := Set.finite_inv.mpr (by assumption)
-  exact Set.Finite.fintype <| Finite.ofBijective <| bijective_neighborSetMap CG v
-
 theorem IsRegularOfDegree [Finite S] : CG.Graph.IsRegularOfDegree (S ∪ S⁻¹).ncard := by
   intro v
   rw [degree, neighborFinset, ← Nat.card_eq_card_toFinset, Nat.card_coe_set_eq]
   exact neighborSet_ncard CG v
 
+private
 def aux (x : S × Bool) : G := if x.2 then x.1 else x.1⁻¹
 
 theorem walk_of_generator_list {v w : G} (l : List (S × Bool)) (h₁ : (l.map aux).prod = v * w⁻¹) :
@@ -117,7 +155,7 @@ theorem walk_of_generator_list {v w : G} (l : List (S × Bool)) (h₁ : (l.map a
   | cons head tail ih =>
     have : (aux head) * (tail.map aux).prod * w = v := by simpa [eq_mul_inv_iff_mul_eq] using h₁
     subst this
-    obtain ⟨L, hi⟩ := @ih ((tail.map aux).prod * w) w (by simp)
+    obtain ⟨L, _⟩ := @ih ((tail.map aux).prod * w) w (by simp)
     have (L : List G) : List.foldr (fun acc e => acc * e) w L = L.prod * w := by
       induction L <;> simp_all [← mul_assoc]
     have : CG.Graph.Adj ((aux head) * (tail.map aux).prod * w) ((tail.map aux).prod * w) := by
@@ -125,7 +163,7 @@ theorem walk_of_generator_list {v w : G} (l : List (S × Bool)) (h₁ : (l.map a
       split <;> simp [← mul_assoc]
     exact ⟨Walk.cons' _ _ _ this L, by simp_all⟩
 
-theorem cayleyGraph_isFreeGroup_of_IsTree [DecidableEq S] (h₁ : CG.Graph.IsTree) (h₂ : ∀ s t : S, (s : G) * t ≠ 1) :
+theorem IsFreeGroup_of_IsTree [DecidableEq S] (h₁ : CG.Graph.IsTree) (h₂ : ∀ s t : S, (s : G) * t ≠ 1) :
     IsFreeGroup G := by
   let ι := fun (x : S) ↦ (x : G)
   refine ⟨⟨S, ⟨⟨MulEquiv.ofBijective (FreeGroup.lift ι) ⟨?_, ?_⟩ |>.symm⟩⟩⟩⟩
@@ -172,7 +210,7 @@ def gens_of_walk : List (S × Bool) :=
   p.darts.map (fun d ↦ (d.toProd.1 * d.toProd.2⁻¹).toWord[0]'(
     Nat.pos_of_ne_zero (by simp [mul_inv_eq_one])))
 
-@[grind =]
+@[local grind =]
 private
 lemma gens_of_walk_length : (gens_of_walk p).length = p.length := by simp [gens_of_walk]
 
@@ -203,7 +241,7 @@ lemma freeGroup_mk_gens_of_walk : FreeGroup.mk (gens_of_walk p) = v * w⁻¹ := 
   rw [Walk.getVert_length] at this
   simp [← this, ← gens_of_walk_length p]
 
-theorem cayleyGraph_IsTree_of_freeGroup (CG : CayleyGraph (FreeGroup S) (Set.range FreeGroup.of)) :
+theorem IsTree_of_FreeGroup (CG : CayleyGraph (FreeGroup S) (Set.range FreeGroup.of)) :
     CG.Graph.IsTree where
   isConnected := connected_iff.mpr <| FreeGroup.closure_range_of S
   IsAcyclic := by
@@ -225,5 +263,13 @@ theorem cayleyGraph_IsTree_of_freeGroup (CG : CayleyGraph (FreeGroup S) (Set.ran
     simp [freeGroup_mk_gens_of_walk p] at this
 
 end
+
+theorem IsTree_of_FreeGroupBasis {G S : Type*} [Group G] [DecidableEq S]
+    (h : FreeGroupBasis S G) {CG : CayleyGraph G (Set.range (h.repr.symm ∘ FreeGroup.of))} :
+    CG.Graph.IsTree := by
+  refine (iso_of_mulEquiv CG h.repr).isTree_iff.mpr <| (iso_of_eq _ ?_).isTree_iff.mpr <|
+    IsTree_of_FreeGroup _
+  refine Set.ext fun x ↦ ⟨?_, by simp_all⟩
+  exact fun ⟨y, ⟨z, hz⟩, hy⟩ ↦ hy ▸ ⟨z, h.repr.symm_apply_eq.mp hz⟩
 
 end CayleyGraph

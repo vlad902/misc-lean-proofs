@@ -134,3 +134,32 @@ theorem IsTree.isPath_of_isTrail {V : Type u} {G : SimpleGraph V} (hG : G.IsTree
   exact IsTree.isPath_of_list_chain hG p |>.mpr <| List.Pairwise.chain' h
 
 end SimpleGraph.Walk
+
+-- TODO: PR
+namespace SimpleGraph
+
+theorem IsAcyclic.comap {V V' : Type*} {G : SimpleGraph V} {H : SimpleGraph V'} (f : G →g H)
+    (hf : Function.Injective f) (hG : H.IsAcyclic) : G.IsAcyclic := by
+  simp only [IsAcyclic] at ⊢ hG
+  intro v w
+  have := w.map_isCycle_iff_of_injective hf
+  grind
+
+@[mono]
+theorem IsAcyclic.mono {V : Type*} {G G' : SimpleGraph V} (h : G ≤ G') (hG : G'.IsAcyclic) : G.IsAcyclic := by
+  simp only [IsAcyclic] at ⊢ hG
+  intro v w
+  contrapose! hG
+  exact ⟨v, w.mapLe h, hG.mapLe h⟩
+
+theorem Iso.isAcyclic_iff {V V' : Type*} {G : SimpleGraph V} {H : SimpleGraph V'} (e : G ≃g H) :
+    G.IsAcyclic ↔ H.IsAcyclic :=
+  ⟨fun h ↦ h.comap e.symm.toHom e.symm.toEquiv.injective,
+   fun h ↦ h.comap e.toHom e.toEquiv.injective⟩
+
+theorem Iso.isTree_iff {V V' : Type*} {G : SimpleGraph V} {H : SimpleGraph V'} (e : G ≃g H) :
+    G.IsTree ↔ H.IsTree :=
+  ⟨fun ⟨h₁, h₂⟩ ↦ ⟨e.connected_iff.mp h₁, e.isAcyclic_iff.mp h₂⟩,
+   fun ⟨h₁, h₂⟩ ↦ ⟨e.connected_iff.mpr h₁, e.isAcyclic_iff.mpr h₂⟩⟩
+
+end SimpleGraph
