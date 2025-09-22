@@ -3,28 +3,6 @@ import Mathlib.Algebra.Group.Submonoid.BigOperators
 import Mathlib.Combinatorics.SimpleGraph.Acyclic
 import Mathlib.GroupTheory.FreeGroup.Reduce
 
--- #25812
-lemma List.chain'_getElem {α : Type u} {R : α → α → Prop} {l : List α} (h : List.Chain' R l) (n : ℕ) (h' : n + 1 < l.length) :
-    R l[n] l[n+1] :=
-  List.chain'_pair.mp <| List.Chain'.infix h ⟨l.take n, l.drop (n + 2), by simp⟩
-
-lemma List.chain'_of_not {α : Type u} {R : α → α → Prop} {l : List α} (h : ¬List.Chain' R l) :
-    ∃ n : ℕ, ∃ h : n + 1 < l.length, ¬R l[n] l[n+1] := by
-  contrapose! h
-  induction l with
-  | nil => simp
-  | cons head tail ih =>
-      refine List.chain'_cons'.mpr ⟨fun y yh ↦ ?_, ?_⟩
-      · by_cases h' : tail.length = 0
-        · simp [List.eq_nil_iff_length_eq_zero.mpr h'] at yh
-        · simp only [head?_eq_getElem?, Option.mem_def] at yh
-          obtain ⟨_, rfl⟩ := List.getElem?_eq_some_iff.mp yh
-          have := h 0 (by rw [List.length_cons]; omega)
-          rwa [List.getElem_cons_zero] at this
-      · refine ih (fun n h' ↦ ?_)
-        have := h (n + 1) (by rw [List.length_cons]; omega)
-        simpa using this
-
 -- TODO: PR 3 lemmas below
 namespace FreeGroup
 variable {α : Type u}
@@ -71,7 +49,7 @@ theorem darts_toProd_eq {V : Type u} {G : SimpleGraph V} {v w : V} {p : G.Walk v
   ext
   · by_cases h' : n = 0
     · simp [h', List.getElem_zero]
-    · have := List.chain'_getElem p.chain'_dartAdj_darts (n - 1) (by omega)
+    · have := p.chain'_dartAdj_darts.getElem (n - 1) (by omega)
       simp only [DartAdj, show n - 1 + 1 = n by omega] at this
       simp [← p.cons_map_snd_darts, List.getElem_cons, ← this, h']
   · simp [← p.cons_map_snd_darts]

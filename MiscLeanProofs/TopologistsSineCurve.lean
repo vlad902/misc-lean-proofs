@@ -1,7 +1,7 @@
 -- https://leanprover.zulipchat.com/#narrow/channel/113489-new-members/topic/golf.20request.3A.20Topologist's.20sine.20curve/with/504284804
 
 import Mathlib.Analysis.Normed.Order.Lattice
-import Mathlib.Data.Real.Pi.Bounds
+import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Data.Real.StarOrdered
 import Mathlib.Geometry.Manifold.Instances.Real
 import Mathlib.Order.CompletePartialOrder
@@ -44,7 +44,7 @@ lemma sine_diverges (x y : ℝ) (hx : x > 0) (hy₁ : -1 ≤ y) (hy₂ : y ≤ 1
 theorem connected : IsConnected curve := by
   refine IsConnected.subset_closure ?_ Set.subset_union_left ?_
   · apply isConnected_Ioi.image fn <| continuousOn_id.prodMk <| ContinuousOn.mono (s := {0}ᶜ) ?_ ?_
-    · exact Real.continuousOn_sin.comp' continuousOn_inv₀ (Set.mapsTo'.mpr fun _ x ↦ x)
+    · exact Real.continuousOn_sin.comp' continuousOn_inv₀ (Set.mapsTo_iff_image_subset.mpr fun _ x ↦ x)
     · simp
   · refine Set.union_subset subset_closure <| Set.singleton_subset_iff.mpr <| mem_closure_iff.mpr ?_
     intro s hopen hmem

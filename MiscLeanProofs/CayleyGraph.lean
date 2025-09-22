@@ -181,11 +181,11 @@ theorem IsFreeGroup_of_IsTree [DecidableEq S] (h₁ : CG.Graph.IsTree) (h₂ : �
       by_contra hh
       obtain ⟨n, h', h''⟩ := List.chain'_of_not hh
       have : n + 1 + 1 < p.support.length := by grind
-      have := ne_of_adj _ <| List.chain'_getElem p.chain'_adj_support n (by grind)
+      have := ne_of_adj _ <| p.chain'_adj_support.getElem n (by grind)
       have : p.support[n] = p.support[n + 1 + 1] := by simpa [this, p.edges_eq_support] using h''
       simp (disch := grind) only [hp, List.getElem_scanr, ← List.prod_eq_foldr,
         List.prod_drop_succ, List.getElem_map, ← mul_assoc, right_eq_mul, aux] at this
-      have := List.chain'_getElem (FreeGroup.isReduced_toWord (x := a)) n (by grind)
+      have := (FreeGroup.isReduced_toWord (x := a)).getElem n (by grind)
       grind
     refine FreeGroup.toWord_eq_nil_iff.mp ?_
     obtain ⟨_, _, hpath⟩ := h₁.existsUnique_path ((FreeGroup.lift ι) a) 1
