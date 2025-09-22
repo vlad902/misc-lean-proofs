@@ -48,7 +48,7 @@ theorem exists_list_of_mem_closure_iff [Monoid M] {s : Set M} {x : M} :
   refine ⟨fun hx ↦ ?_, fun ⟨l, hl₁, hl₂⟩ ↦ ?_⟩
   · rwa [← SetLike.mem_coe, closure_eq_image_prod, Set.mem_image] at hx
   · rw [← hl₂]
-    exact list_prod_mem (closure s) <| fun x hx ↦ mem_closure.mpr fun S a ↦ a (hl₁ x hx)
+    exact list_prod_mem (closure s) <| fun x hx ↦ mem_closure.mpr fun _ a ↦ a (hl₁ x hx)
 
 end Submonoid
 
@@ -135,7 +135,7 @@ theorem IsTree.isPath_of_isTrail {V : Type u} {G : SimpleGraph V} (hG : G.IsTree
 
 end SimpleGraph.Walk
 
--- TODO: PR
+-- #29328
 namespace SimpleGraph
 
 theorem IsAcyclic.comap {V V' : Type*} {G : SimpleGraph V} {H : SimpleGraph V'} (f : G →g H)
