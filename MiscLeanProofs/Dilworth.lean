@@ -44,13 +44,13 @@ theorem Set.one_le_ncard_insert (a : α) (s : Set α) [Finite ↑s] : 1 ≤ (ins
 
 end PR29833
 
--- #29834
-section PR29834
+section PR
 
 open Function Set IsAntichain
 
 variable {α β : Type*} {r r₁ r₂ : α → α → Prop} {r' : β → β → Prop} {s t : Set α} {a b : α}
 
+-- #29834
 @[simp] protected theorem IsAntichain.empty : IsAntichain r ∅ :=
   pairwise_empty _
 
@@ -62,126 +62,12 @@ protected theorem IsAntichain.union :
       IsAntichain r s ∧ IsAntichain r t ∧ ∀ a ∈ s, ∀ b ∈ t, a ≠ b → rᶜ a b ∧ rᶜ b a := by
   rw [IsAntichain, IsAntichain, IsAntichain, pairwise_union]
 
--- #29835
-def IsMaxAntichain (r : α → α → Prop) (s : Set α) : Prop :=
-  IsAntichain r s ∧ ∀ ⦃t⦄, IsAntichain r t → s ⊆ t → s = t
-
-namespace IsMaxAntichain
-
-theorem isAntichain (h : IsMaxAntichain r s) : IsAntichain r s :=
-  h.1
-
-protected theorem image {s : β → β → Prop} (e : r ≃r s) {c : Set α} (hc : IsMaxAntichain r c) :
-    IsMaxAntichain s (e '' c) where
-  left := hc.isAntichain.image _ fun _ _ ↦ e.map_rel_iff'.mp
-  right t ht hf := by
-    rw [← e.coe_fn_toEquiv, ← e.toEquiv.eq_preimage_iff_image_eq, preimage_equiv_eq_image_symm]
-    exact hc.2 (ht.image _ fun _ _ ↦ e.symm.map_rel_iff.mp)
-      ((e.toEquiv.subset_symm_image _ _).2 hf)
-
-protected theorem isEmpty_iff (h : IsMaxAntichain r s) : IsEmpty α ↔ IsEmpty s := by
-  refine ⟨fun _ ↦ isEmpty_coe_sort.mpr s.eq_empty_of_isEmpty, fun h' ↦ ?_⟩
-  by_contra! hh
-  obtain ⟨x⟩ := not_isEmpty_iff.mp hh
-  simp only [IsMaxAntichain, isEmpty_coe_sort.mp h', IsAntichain.empty, empty_subset, forall_const,
-    true_and] at h
-  exact singleton_ne_empty x (h IsAntichain.singleton).symm
-
-protected theorem nonempty_iff (h : IsMaxAntichain r s) : Nonempty α ↔ Nonempty s := by
-  grind [not_nonempty_iff, IsMaxAntichain.isEmpty_iff]
-
-protected theorem symm (h : IsMaxAntichain r s) : IsMaxAntichain (flip r) s :=
-  ⟨h.isAntichain.flip, fun _ ht₁ ht₂ ↦ h.2 ht₁.flip ht₂⟩
-
-end IsMaxAntichain
-
-protected theorem IsMaxChain.isEmpty_iff (h : IsMaxChain r s) : IsEmpty α ↔ IsEmpty s := by
-  refine ⟨fun _ ↦ isEmpty_coe_sort.mpr s.eq_empty_of_isEmpty, fun h' ↦ ?_⟩
-  by_contra! hh
-  obtain ⟨x⟩ := not_isEmpty_iff.mp hh
-  simp only [IsMaxChain, isEmpty_coe_sort.mp h', IsChain.empty, empty_subset, forall_const,
-    true_and] at h
-  exact singleton_ne_empty x (h IsChain.singleton).symm
-
-protected theorem IsMaxChain.nonempty_iff (h : IsMaxChain r s) : Nonempty α ↔ Nonempty s := by
-  grind [not_nonempty_iff, IsMaxChain.isEmpty_iff]
-
-theorem IsMaxChain.symm (h : IsMaxChain r s) : IsMaxChain (flip r) s :=
-  ⟨h.isChain.symm, fun _ ht₁ ht₂ ↦ h.2 ht₁.symm ht₂⟩
-
-end PR29834
-
--- mathlib4/Mathlib/Data/ENat/Basic.lean
-theorem ENat.le_sub_of_add_le_right {a b c : ℕ∞} (hb : b ≠ ⊤) : a + b ≤ c → a ≤ c - b :=
-  (addLECancellable_of_ne_top hb).le_tsub_of_add_le_right
-
-theorem ENat.le_sub_one_of_lt {a b : ℕ∞} (hab : a < b) : a ≤ b - 1 := by
-  cases b
-  · simp
-  · exact le_sub_of_add_le_right one_ne_top <| lt_coe_add_one_iff.mp <| lt_tsub_iff_right.mp hab
-
--- TODO: Copy below?
-theorem IsAntichain.coe_univ {α : Type*} {r : α → α → Prop} {s : Set α} (h : IsAntichain r s) :
-    @IsAntichain ↑s (r ↑· ↑·) Set.univ :=
-  fun a _ b _ hne ↦  @h a a.property b b.property (Subtype.coe_ne_coe.mpr hne)
-
-theorem IsAntichain.sdiff {α : Type*} {r : α → α → Prop} {s t : Set α} (h : IsAntichain r s) :
-    IsAntichain r (s \ t) :=
-  fun a ha b hb hne ↦ @h a (Set.mem_of_mem_inter_left ha) b (Set.mem_of_mem_inter_left hb) hne
-
-theorem IsChain.coe_univ {α : Type*} {r : α → α → Prop} {s : Set α} :
-    @IsChain ↑s (r ↑· ↑·) Set.univ ↔ IsChain r s :=
-  ⟨fun h a ha b hb hne ↦ @h ⟨a, ha⟩ (by simp) ⟨b, hb⟩ (by simp) (by simp [hne]),
-   fun h a _ b _ hne ↦ @h a.1 a.2 b.1 b.2 (Subtype.coe_ne_coe.mpr hne)⟩
-
-theorem IsChain.sdiff {α : Type*} {r : α → α → Prop} {s t : Set α} (h : IsChain r s) :
-    IsChain r (s \ t) :=
-  fun a ha b hb hne ↦ @h a (Set.mem_of_mem_inter_left ha) b (Set.mem_of_mem_inter_left hb) hne
-
-section IsChain
-
-variable {α β : Type*} {r : α → α → Prop} {l : List α} {a : α}
-
 theorem IsChain.preimage (r : α → α → Prop) (s : β → β → Prop) (f : α → β)
     (hf : Function.Injective f) (h : ∀ x y, s (f x) (f y) → r x y) {c : Set β} (hrc : IsChain s c) :
     IsChain r (f ⁻¹' c) := by
   intro _ ha _ hb hne
   have := hrc ha hb (fun h ↦ hne (hf h))
   grind
-
-theorem IsChain.exists_isTop {α : Type*} [Preorder α] (s : Set α) [Finite s] (h : Nonempty s)
-    (hs : IsChain (· ≤ ·) s) : ∃ x : s, IsTop x := by
-  obtain ⟨x, hx₁, hx₂⟩ := s.toFinite.exists_maximal (Set.nonempty_coe_sort.mp h)
-  refine ⟨⟨x, hx₁⟩, fun a ↦ ?_⟩
-  by_cases h' : x = a.1
-  · simp [h']
-  · rcases hs hx₁ a.2 h' with h'' | h''
-    · exact hx₂ a.2 h''
-    · exact h''
-
-theorem IsChain.exists_isBot {α : Type*} [Preorder α] (s : Set α) [Finite s] (h : Nonempty s)
-    (hs : IsChain (· ≤ ·) s) : ∃ x : s, IsBot x :=
-  hs.symm.exists_isTop (α := αᵒᵈ) s h
-
-theorem IsMaxChain.exists_isMax {α : Type*} [Preorder α] {s : Set α} [Finite s] (h : Nonempty s)
-    (hs : IsMaxChain (· ≤ ·) s) : ∃ x : α, x ∈ s ∧ IsMax x := by
-  by_contra! hh
-  obtain ⟨x, hx₁, hx₂⟩ := s.toFinite.exists_maximal (Set.nonempty_coe_sort.mp (by assumption))
-  have := hh x hx₁
-  simp only [IsMax, not_forall] at this
-  obtain ⟨z, hz₁, hz₂⟩ := this
-  have : IsChain (· ≤ ·) (s ∪ {z}) := by
-    refine isChain_union.mpr ⟨hs.isChain, IsChain.singleton, fun a ha₁ ↦ ?_⟩
-    by_cases h' : x = a
-    · grind
-    · rcases hs.1 hx₁ ha₁ h' with h'' | h'' <;> grind [le_trans]
-  refine hz₂ (hx₂ ?_ hz₁)
-  rw [hs.2 this (by simp)]
-  simp
-
-theorem IsMaxChain.exists_isMin {α : Type*} [Preorder α] (s : Set α) [Finite s] (h : Nonempty s)
-    (hs : IsMaxChain (· ≤ ·) s) : ∃ x : α, x ∈ s ∧ IsMin x :=
-  hs.symm.exists_isMax (α := αᵒᵈ) h
 
 namespace IsChain
 
@@ -243,6 +129,118 @@ theorem preimage_iso_iff [LE α] [LE β] {t : Set β} {φ : α ≃o β} :
 
 end IsChain
 
+-- #29835
+def IsMaxAntichain (r : α → α → Prop) (s : Set α) : Prop :=
+  IsAntichain r s ∧ ∀ ⦃t⦄, IsAntichain r t → s ⊆ t → s = t
+
+namespace IsMaxAntichain
+
+theorem isAntichain (h : IsMaxAntichain r s) : IsAntichain r s :=
+  h.1
+
+protected theorem image {s : β → β → Prop} (e : r ≃r s) {c : Set α} (hc : IsMaxAntichain r c) :
+    IsMaxAntichain s (e '' c) where
+  left := hc.isAntichain.image _ fun _ _ ↦ e.map_rel_iff'.mp
+  right t ht hf := by
+    rw [← e.coe_fn_toEquiv, ← e.toEquiv.eq_preimage_iff_image_eq, preimage_equiv_eq_image_symm]
+    exact hc.2 (ht.image _ fun _ _ ↦ e.symm.map_rel_iff.mp)
+      ((e.toEquiv.subset_symm_image _ _).2 hf)
+
+protected theorem isEmpty_iff (h : IsMaxAntichain r s) : IsEmpty α ↔ IsEmpty s := by
+  refine ⟨fun _ ↦ isEmpty_coe_sort.mpr s.eq_empty_of_isEmpty, fun h' ↦ ?_⟩
+  by_contra! hh
+  obtain ⟨x⟩ := not_isEmpty_iff.mp hh
+  simp only [IsMaxAntichain, isEmpty_coe_sort.mp h', IsAntichain.empty, empty_subset, forall_const,
+    true_and] at h
+  exact singleton_ne_empty x (h IsAntichain.singleton).symm
+
+protected theorem nonempty_iff (h : IsMaxAntichain r s) : Nonempty α ↔ Nonempty s := by
+  grind [not_nonempty_iff, IsMaxAntichain.isEmpty_iff]
+
+protected theorem symm (h : IsMaxAntichain r s) : IsMaxAntichain (flip r) s :=
+  ⟨h.isAntichain.flip, fun _ ht₁ ht₂ ↦ h.2 ht₁.flip ht₂⟩
+
+end IsMaxAntichain
+
+protected theorem IsMaxChain.isEmpty_iff (h : IsMaxChain r s) : IsEmpty α ↔ IsEmpty s := by
+  refine ⟨fun _ ↦ isEmpty_coe_sort.mpr s.eq_empty_of_isEmpty, fun h' ↦ ?_⟩
+  by_contra! hh
+  obtain ⟨x⟩ := not_isEmpty_iff.mp hh
+  simp only [IsMaxChain, isEmpty_coe_sort.mp h', IsChain.empty, empty_subset, forall_const,
+    true_and] at h
+  exact singleton_ne_empty x (h IsChain.singleton).symm
+
+protected theorem IsMaxChain.nonempty_iff (h : IsMaxChain r s) : Nonempty α ↔ Nonempty s := by
+  grind [not_nonempty_iff, IsMaxChain.isEmpty_iff]
+
+theorem IsMaxChain.symm (h : IsMaxChain r s) : IsMaxChain (flip r) s :=
+  ⟨h.isChain.symm, fun _ ht₁ ht₂ ↦ h.2 ht₁.symm ht₂⟩
+
+-- #29992
+
+theorem IsChain.exists_isTop {α : Type*} [Preorder α] (s : Set α) [Finite s] (h : Nonempty s)
+    (hs : IsChain (· ≤ ·) s) : ∃ x : s, IsTop x := by
+  obtain ⟨x, hx₁, hx₂⟩ := s.toFinite.exists_maximal (Set.nonempty_coe_sort.mp h)
+  refine ⟨⟨x, hx₁⟩, fun a ↦ ?_⟩
+  by_cases h' : x = a.1
+  · simp [h']
+  · rcases hs hx₁ a.2 h' with h'' | h''
+    · exact hx₂ a.2 h''
+    · exact h''
+
+theorem IsChain.exists_isBot {α : Type*} [Preorder α] (s : Set α) [Finite s] (h : Nonempty s)
+    (hs : IsChain (· ≤ ·) s) : ∃ x : s, IsBot x :=
+  hs.symm.exists_isTop (α := αᵒᵈ) s h
+
+theorem IsMaxChain.exists_isMax {α : Type*} [Preorder α] {s : Set α} [Finite s] (h : Nonempty s)
+    (hs : IsMaxChain (· ≤ ·) s) : ∃ x : α, x ∈ s ∧ IsMax x := by
+  by_contra! hh
+  obtain ⟨x, hx₁, hx₂⟩ := s.toFinite.exists_maximal (Set.nonempty_coe_sort.mp (by assumption))
+  have := hh x hx₁
+  simp only [IsMax, not_forall] at this
+  obtain ⟨z, hz₁, hz₂⟩ := this
+  have : IsChain (· ≤ ·) (s ∪ {z}) := by
+    refine isChain_union.mpr ⟨hs.isChain, IsChain.singleton, fun a ha₁ ↦ ?_⟩
+    by_cases h' : x = a
+    · grind
+    · rcases hs.1 hx₁ ha₁ h' with h'' | h'' <;> grind [le_trans]
+  refine hz₂ (hx₂ ?_ hz₁)
+  rw [hs.2 this (by simp)]
+  simp
+
+theorem IsMaxChain.exists_isMin {α : Type*} [Preorder α] (s : Set α) [Finite s] (h : Nonempty s)
+    (hs : IsMaxChain (· ≤ ·) s) : ∃ x : α, x ∈ s ∧ IsMin x :=
+  hs.symm.exists_isMax (α := αᵒᵈ) h
+
+-- #30002
+theorem ENat.le_sub_of_add_le_right {a b c : ℕ∞} (hb : b ≠ ⊤) : a + b ≤ c → a ≤ c - b :=
+  (addLECancellable_of_ne_top hb).le_tsub_of_add_le_right
+
+theorem ENat.le_sub_one_of_lt {a b : ℕ∞} (hab : a < b) : a ≤ b - 1 := by
+  cases b
+  · simp
+  · exact le_sub_of_add_le_right one_ne_top <| lt_coe_add_one_iff.mp <| lt_tsub_iff_right.mp hab
+
+-- #30003
+
+theorem IsAntichain.coe_univ {α : Type*} {r : α → α → Prop} {s : Set α} (h : IsAntichain r s) :
+    @IsAntichain ↑s (r ↑· ↑·) Set.univ :=
+  fun a _ b _ hne ↦  @h a a.property b b.property (Subtype.coe_ne_coe.mpr hne)
+
+theorem IsAntichain.sdiff {α : Type*} {r : α → α → Prop} {s t : Set α} (h : IsAntichain r s) :
+    IsAntichain r (s \ t) :=
+  fun a ha b hb hne ↦ @h a (Set.mem_of_mem_inter_left ha) b (Set.mem_of_mem_inter_left hb) hne
+
+theorem IsChain.coe_univ {α : Type*} {r : α → α → Prop} {s : Set α} (h : IsChain r s) :
+    @IsChain ↑s (r ↑· ↑·) Set.univ :=
+  fun a _ b _ hne ↦  @h a a.property b b.property (Subtype.coe_ne_coe.mpr hne)
+
+theorem IsChain.sdiff {α : Type*} {r : α → α → Prop} {s t : Set α} (h : IsChain r s) :
+    IsChain r (s \ t) :=
+  fun a ha b hb hne ↦ @h a (Set.mem_of_mem_inter_left ha) b (Set.mem_of_mem_inter_left hb) hne
+
+end PR
+
 section height
 
 open ENat
@@ -295,49 +293,42 @@ theorem exists_eq_chainHeight_of_finite [Finite α] :
     ∃ s : Set α, s.encard = chainHeight α r ∧ IsChain r s :=
   exists_of_chainHeight_ne_top α r (chainHeight_ne_top_of_finite α r)
 
-theorem encard_le_chainHeight (s : Set α) (h : IsChain r s) : s.encard ≤ chainHeight α r :=
+variable {α β : Type*} {r : α → α → Prop} {r' : β → β → Prop}
+
+theorem encard_le_chainHeight {s : Set α} (h : IsChain r s) : s.encard ≤ chainHeight α r :=
   le_iSup_iff.mpr fun _ a ↦ a ⟨s, h⟩
 
-theorem finite_of_chainHeight_ne_top (s : Set α) (h₁ : IsChain r s) (h₂ : chainHeight α r ≠ ⊤) :
+theorem finite_of_chainHeight_ne_top {s : Set α} (h₁ : IsChain r s) (h₂ : chainHeight α r ≠ ⊤) :
     s.Finite :=
-  Set.encard_ne_top_iff.mp <| ne_top_of_le_ne_top h₂ <| encard_le_chainHeight α r s h₁
+  Set.encard_ne_top_iff.mp <| ne_top_of_le_ne_top h₂ <| encard_le_chainHeight h₁
 
-theorem isMaxChain_of_eq_chainHeight (s : Set α) (h₁ : IsChain r s)
-    (h₂ : s.encard = chainHeight α r) (h₃ : chainHeight α r ≠ ⊤) : IsMaxChain r s := by
-  refine ⟨h₁, ?_⟩
-  contrapose! h₂
-  obtain ⟨t, ht₁, ht₂, ht₃⟩ := h₂
-  refine ne_of_lt <| lt_iSup_iff.mpr ⟨⟨t, ht₁⟩, ?_⟩
-  exact Set.Finite.encard_lt_encard (finite_of_chainHeight_ne_top α r s h₁ h₃) (by grind)
-
-theorem encard_lt_chainHeight_of_not_isMaxChain (s : Set α) [Finite s] (h₁ : IsChain r s)
+theorem encard_lt_chainHeight_of_not_isMaxChain {s : Set α} [Finite s] (h₁ : IsChain r s)
     (h₂ : ¬IsMaxChain r s) : s.encard < chainHeight α r := by
   contrapose! h₂
   refine ⟨h₁, fun t ht₁ ht₂ ↦ ?_⟩
   by_contra! hh
   have := Set.Finite.encard_lt_encard (by assumption) ⟨ht₂, by grind⟩
-  have := lt_of_lt_of_le (lt_of_le_of_lt h₂ this) (encard_le_chainHeight α r t ht₁)
+  have := lt_of_lt_of_le (lt_of_le_of_lt h₂ this) (encard_le_chainHeight ht₁)
   simp at this
 
-theorem chainHeight_le_of_relEmbedding (β : Type*) (r' : β → β → Prop) (e : r ↪r r') :
+theorem chainHeight_le_of_relEmbedding (e : r ↪r r') :
     chainHeight α r ≤ chainHeight β r' := by
   refine forall_natCast_le_iff_le.mp fun n hn ↦ ?_
   obtain ⟨a, ha₁, ha₂⟩ := exists_of_le_chainHeight α r n hn
   have : (e '' a).encard = n := by rw [Function.Injective.encard_image e.injective, ha₁]
-  exact this ▸ encard_le_chainHeight _ _ (e '' a) <| IsChain.image_relEmbedding_iff.mpr ha₂
+  exact this ▸ encard_le_chainHeight (s := e '' a) <| IsChain.image_relEmbedding_iff.mpr ha₂
 
-theorem chainHeight_eq_of_relIso (β : Type*) (r' : β → β → Prop) (e : r ≃r r') :
+theorem chainHeight_eq_of_relIso (e : r ≃r r') :
     chainHeight α r = chainHeight β r' :=
-  le_antisymm (chainHeight_le_of_relEmbedding α r β r' e)
-    (chainHeight_le_of_relEmbedding β r' α r e.symm)
+  le_antisymm (chainHeight_le_of_relEmbedding e) (chainHeight_le_of_relEmbedding e.symm)
 
 theorem chainHeight_coe_univ :
     chainHeight ↑Set.univ (r ·.val ·.val) = chainHeight α r :=
   chainHeight_eq_of_relIso (e := { toEquiv := Equiv.Set.univ α, map_rel_iff' := by simp })
 
 theorem chainHeight_subset (s t : Set α) (h : s ⊆ t) :
-    chainHeight s (r ·.val ·.val) ≤ chainHeight t (r ·.val ·.val) :=
-  chainHeight_le_of_relEmbedding _ _ _ _
+    chainHeight s (r · ·) ≤ chainHeight t (r · ·) :=
+  chainHeight_le_of_relEmbedding
     { toFun := fun x ↦ ⟨x.1, h x.2⟩, inj' := Set.inclusion_injective h, map_rel_iff' := by simp }
 
 end height
@@ -394,137 +385,46 @@ theorem exists_eq_antichainWidth_of_finite [Finite α] :
     ∃ s : Set α, s.encard = antichainWidth α r ∧ IsAntichain r s :=
   exists_of_antichainWidth_ne_top α r (antichainWidth_ne_top_of_finite α r)
 
-theorem encard_le_antichainWidth (s : Set α) (h : IsAntichain r s) :
+variable {α β : Type*} {r : α → α → Prop} {r' : β → β → Prop}
+
+theorem encard_le_antichainWidth {s : Set α} (h : IsAntichain r s) :
     s.encard ≤ antichainWidth α r :=
   le_iSup_iff.mpr fun _ a ↦ a ⟨s, h⟩
 
-theorem finite_of_antichainWidth_ne_top (s : Set α) (h₁ : IsAntichain r s)
+theorem finite_of_antichainWidth_ne_top {s : Set α} (h₁ : IsAntichain r s)
     (h₂ : antichainWidth α r ≠ ⊤) : s.Finite :=
-  Set.encard_ne_top_iff.mp <| ne_top_of_le_ne_top h₂ <| encard_le_antichainWidth α r s h₁
+  Set.encard_ne_top_iff.mp <| ne_top_of_le_ne_top h₂ <| encard_le_antichainWidth h₁
 
-theorem isMaxAntichain_of_eq_antichainWidth (s : Set α) (h₁ : IsAntichain r s)
-    (h₂ : s.encard = antichainWidth α r) (h₃ : antichainWidth α r ≠ ⊤) : IsMaxAntichain r s := by
-  refine ⟨h₁, ?_⟩
-  contrapose! h₂
-  obtain ⟨t, ht₁, ht₂, ht₃⟩ := h₂
-  refine ne_of_lt <| lt_iSup_iff.mpr ⟨⟨t, ht₁⟩, ?_⟩
-  exact Set.Finite.encard_lt_encard (finite_of_antichainWidth_ne_top α r s h₁ h₃) (by grind)
-
-theorem encard_lt_antichainWidth_of_not_isMaxAntichain (s : Set α) [Finite s] (h₁ : IsAntichain r s)
+theorem encard_lt_antichainWidth_of_not_isMaxAntichain {s : Set α} [Finite s] (h₁ : IsAntichain r s)
     (h₂ : ¬IsMaxAntichain r s) : s.encard < antichainWidth α r := by
   contrapose! h₂
   refine ⟨h₁, fun t ht₁ ht₂ ↦ ?_⟩
   by_contra! hh
   have := Set.Finite.encard_lt_encard (by assumption) ⟨ht₂, by grind⟩
-  have := lt_of_lt_of_le (lt_of_le_of_lt h₂ this) (encard_le_antichainWidth α r t ht₁)
+  have := lt_of_lt_of_le (lt_of_le_of_lt h₂ this) (encard_le_antichainWidth ht₁)
   simp at this
 
-theorem antichainWidth_le_of_relEmbedding (β : Type*) (r' : β → β → Prop) (e : r ↪r r') :
+theorem antichainWidth_le_of_relEmbedding (e : r ↪r r') :
     antichainWidth α r ≤ antichainWidth β r' := by
   refine forall_natCast_le_iff_le.mp fun n hn ↦ ?_
   obtain ⟨a, ha₁, ha₂⟩ := exists_of_le_antichainWidth α r n hn
   have : (e '' a).encard = n := by rw [Function.Injective.encard_image e.injective, ha₁]
-  exact this ▸ encard_le_antichainWidth _ _ (e '' a) <| IsAntichain.image_relEmbedding_iff.mpr ha₂
+  exact this ▸ encard_le_antichainWidth (s := e '' a) <| IsAntichain.image_relEmbedding_iff.mpr ha₂
 
-theorem antichainWidth_eq_of_relIso (β : Type*) (r' : β → β → Prop) (e : r ≃r r') :
+theorem antichainWidth_eq_of_relIso (e : r ≃r r') :
     antichainWidth α r = antichainWidth β r' :=
-  le_antisymm (antichainWidth_le_of_relEmbedding α r β r' e)
-    (antichainWidth_le_of_relEmbedding β r' α r e.symm)
+  le_antisymm (antichainWidth_le_of_relEmbedding e) (antichainWidth_le_of_relEmbedding e.symm)
 
 theorem antichainWidth_coe_univ :
     antichainWidth ↑Set.univ (r ·.val ·.val) = antichainWidth α r :=
   antichainWidth_eq_of_relIso (e := { toEquiv := Equiv.Set.univ α, map_rel_iff' := by simp })
 
 theorem antichainWidth_subset (s t : Set α) (h : s ⊆ t) :
-    antichainWidth s (r ·.val ·.val) ≤ antichainWidth t (r ·.val ·.val) :=
-  antichainWidth_le_of_relEmbedding _ _ _ _
+    antichainWidth s (r · ·) ≤ antichainWidth t (r · ·) :=
+  antichainWidth_le_of_relEmbedding
     { toFun := fun x ↦ ⟨x.1, h x.2⟩, inj' := Set.inclusion_injective h, map_rel_iff' := by simp }
 
 end width
-
-end IsChain
-
-section AntichainPartition
-
-variable (α : Type*) (r : α → α → Prop)
-
-def IsAntichainPartition (S : Set (Set α)) :=
-  (∀ x : α, ∃! s ∈ S, x ∈ s) ∧ (∀ s ∈ S, IsAntichain r s)
-
-theorem exists_IsAntichainPartition :
-    ∃ s : Set (Set α), IsAntichainPartition α r s ∧ s.encard = ENat.card α := by
-  refine ⟨Set.range ({·}), ⟨fun a ↦ ⟨{a}, by simp⟩, by simp⟩, ?_⟩
-  rw [← @Set.image_univ, ← Set.encard_univ α]
-  exact Function.Injective.encard_image Set.singleton_injective Set.univ
-
-theorem isAntichainPartition_sdiff_empty {s : Set (Set α)} (hs : IsAntichainPartition α r s) :
-    IsAntichainPartition α r (s \ {∅}) := by
-  refine ⟨fun x ↦ ?_, fun t ht ↦ hs.2 t ht.1⟩
-  have := hs.1 x
-  grind
-
-theorem isAntichainPartition_image {α β : Type*} {r : α → α → Prop} {r' : β → β → Prop}
-    {s : Set (Set α)} (hs : IsAntichainPartition α r s) {f : α → β} (hf : Function.Bijective f)
-    (h : ∀ ⦃a b : α⦄, r' (f a) (f b) → r a b) : IsAntichainPartition β r' ((f '' ·) '' s) := by
-  refine ⟨fun x ↦ ?_, fun t ht ↦ ?_⟩
-  · obtain ⟨y, hy⟩ := hf.surjective x
-    obtain ⟨t, ⟨ht₁, ht₂⟩, ht₃⟩ := hs.1 y
-    refine ⟨f '' t, ⟨⟨t, by simp_all⟩, ⟨y, by simp_all⟩⟩, ?_⟩
-    simp only [Set.mem_image, and_imp, forall_exists_index, forall_apply_eq_imp_iff₂] at ⊢ ht₃
-    exact fun a ha b hb heq ↦ Set.image_eq_image hf.injective |>.mpr <|
-      ht₃ a ha (hf.injective (hy ▸ heq) ▸ hb)
-  · obtain ⟨u, hu₁, hu₂⟩ := ht
-    exact hu₂ ▸ IsAntichain.image (hs.2 u hu₁) _ (by grind)
-
-theorem isAntichainPartition_preimage {α β : Type*} {r : α → α → Prop} {r' : β → β → Prop}
-    {s : Set (Set α)} (hs : IsAntichainPartition α r s) {f : β → α} (hf : Function.Bijective f)
-    (h : ∀ ⦃a b : β⦄, r' a b → r (f a) (f b)) : IsAntichainPartition β r' ((f ⁻¹' ·) '' s) := by
-  obtain ⟨g, hgl, hgr⟩ := Function.bijective_iff_has_inverse.mp hf
-  have := Function.bijective_iff_has_inverse.mpr ⟨f, ⟨hgr, hgl⟩⟩
-  have := isAntichainPartition_image (f := g) (r' := r') hs this (by grind)
-  rwa [← Set.image_eq_preimage_of_inverse hgr.leftInverse hgl.rightInverse]
-
-noncomputable def minAntichainPartition : ℕ∞ :=
-  ⨅ s : {s : Set (Set α) // IsAntichainPartition α r s}, s.val.encard
-
-theorem minAntichainPartition_eq_biSup :
-  minAntichainPartition α r =
-    ⨅ s : {s : Set (Set α) // IsAntichainPartition α r s}, s.val.encard := rfl
-
-theorem minAntichainPartition_eq_zero_iff : minAntichainPartition α r = 0 ↔ IsEmpty α := by
-  simp [isEmpty_iff, minAntichainPartition, IsAntichainPartition]
-
-theorem one_le_minAntichainPartition_iff : 1 ≤ minAntichainPartition α r ↔ Nonempty α := by
-  refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
-  · contrapose! h
-    grind [minAntichainPartition_eq_zero_iff, not_nonempty_iff, ENat.lt_one_iff_eq_zero]
-  · by_contra! hh
-    grind [minAntichainPartition_eq_zero_iff, not_nonempty_iff, ENat.lt_one_iff_eq_zero]
-
-theorem minAntichainPartition_le_card : minAntichainPartition α r ≤ ENat.card α := by
-  obtain ⟨s, hs₁, hs₂⟩ := exists_IsAntichainPartition α r
-  refine iInf_le_iff.mpr fun b hb ↦ ?_
-  grw [hb ⟨s, hs₁⟩, hs₂]
-
-theorem minAntichainPartition_ne_top_of_finite [Finite α] : minAntichainPartition α r ≠ ⊤ := by
-  have := minAntichainPartition_le_card α r
-  rw [ENat.card_eq_coe_natCard, ENat.le_coe_iff] at this
-  obtain ⟨n, hn, _⟩ := this
-  simp [hn]
-
-theorem minAntichainPartition_le_encard (S : Set (Set α)) (h : IsAntichainPartition α r S) :
-    minAntichainPartition α r ≤ S.encard :=
-  iInf_le_iff.mpr fun _ hx ↦ hx ⟨S, h⟩
-
-theorem minAntichainPartition_exists :
-    ∃ (S : Set (Set α)), S.encard = minAntichainPartition α r ∧ IsAntichainPartition α r S := by
-  have : Nonempty ({s : Set (Set α) // IsAntichainPartition α r s}) := by
-    obtain ⟨s, hs, _⟩ := exists_IsAntichainPartition α r
-    exact ⟨s, hs⟩
-  obtain ⟨s, hs⟩ := @ENat.exists_eq_iInf _ this (·.val.encard)
-  exact ⟨s.val, hs, s.property⟩
-
-end AntichainPartition
 
 section ChainPartition
 
@@ -538,33 +438,6 @@ theorem exists_IsChainPartition :
   refine ⟨Set.range ({·}), ⟨fun a ↦ ⟨{a}, by simp⟩, by simp [IsChain.singleton]⟩, ?_⟩
   rw [← @Set.image_univ, ← Set.encard_univ α]
   exact Function.Injective.encard_image Set.singleton_injective Set.univ
-
-theorem isChainPartition_sdiff_empty {s : Set (Set α)} (hs : IsChainPartition α r s) :
-    IsChainPartition α r (s \ {∅}) := by
-  refine ⟨fun x ↦ ?_, fun t ht ↦ hs.2 t ht.1⟩
-  have := hs.1 x
-  grind
-
-theorem isChainPartition_image {α β : Type*} {r : α → α → Prop} {r' : β → β → Prop}
-    {s : Set (Set α)} (hs : IsChainPartition α r s) {f : α → β} (hf : Function.Bijective f)
-    (h : ∀ ⦃a b : α⦄, r a b → r' (f a) (f b)) : IsChainPartition β r' ((f '' ·) '' s) := by
-  refine ⟨fun x ↦ ?_, fun t ht ↦ ?_⟩
-  · obtain ⟨y, hy⟩ := hf.surjective x
-    obtain ⟨t, ⟨ht₁, ht₂⟩, ht₃⟩ := hs.1 y
-    refine ⟨f '' t, ⟨⟨t, by simp_all⟩, ⟨y, by simp_all⟩⟩, ?_⟩
-    simp only [Set.mem_image, and_imp, forall_exists_index, forall_apply_eq_imp_iff₂] at ⊢ ht₃
-    exact fun a ha b hb heq ↦ Set.image_eq_image hf.injective |>.mpr <|
-      ht₃ a ha (hf.injective (hy ▸ heq) ▸ hb)
-  · obtain ⟨u, hu₁, hu₂⟩ := ht
-    exact hu₂ ▸ IsChain.image _ _ _ (by simp_all) (hs.2 u hu₁)
-
-theorem isChainPartition_preimage {α β : Type*} {r : α → α → Prop} {r' : β → β → Prop}
-    {s : Set (Set α)} (hs : IsChainPartition α r s) {f : β → α} (hf : Function.Bijective f)
-    (h : ∀ ⦃a b : β⦄, r (f a) (f b) → r' a b) : IsChainPartition β r' ((f ⁻¹' ·) '' s) := by
-  obtain ⟨g, hgl, hgr⟩ := Function.bijective_iff_has_inverse.mp hf
-  have := Function.bijective_iff_has_inverse.mpr ⟨f, ⟨hgr, hgl⟩⟩
-  have := isChainPartition_image (f := g) (r' := r') hs this (by grind)
-  rwa [← Set.image_eq_preimage_of_inverse hgr.leftInverse hgl.rightInverse]
 
 noncomputable def minChainPartition : ℕ∞ :=
   ⨅ s : {s : Set (Set α) // IsChainPartition α r s}, s.val.encard
@@ -608,11 +481,66 @@ theorem minChainPartition_exists :
 
 end ChainPartition
 
+section AntichainPartition
+
+variable (α : Type*) (r : α → α → Prop)
+
+def IsAntichainPartition (S : Set (Set α)) :=
+  (∀ x : α, ∃! s ∈ S, x ∈ s) ∧ (∀ s ∈ S, IsAntichain r s)
+
+theorem exists_IsAntichainPartition :
+    ∃ s : Set (Set α), IsAntichainPartition α r s ∧ s.encard = ENat.card α := by
+  refine ⟨Set.range ({·}), ⟨fun a ↦ ⟨{a}, by simp⟩, by simp⟩, ?_⟩
+  rw [← @Set.image_univ, ← Set.encard_univ α]
+  exact Function.Injective.encard_image Set.singleton_injective Set.univ
+
+noncomputable def minAntichainPartition : ℕ∞ :=
+  ⨅ s : {s : Set (Set α) // IsAntichainPartition α r s}, s.val.encard
+
+theorem minAntichainPartition_eq_biSup :
+  minAntichainPartition α r =
+    ⨅ s : {s : Set (Set α) // IsAntichainPartition α r s}, s.val.encard := rfl
+
+theorem minAntichainPartition_eq_zero_iff : minAntichainPartition α r = 0 ↔ IsEmpty α := by
+  simp [isEmpty_iff, minAntichainPartition, IsAntichainPartition]
+
+theorem one_le_minAntichainPartition_iff : 1 ≤ minAntichainPartition α r ↔ Nonempty α := by
+  refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
+  · contrapose! h
+    grind [minAntichainPartition_eq_zero_iff, not_nonempty_iff, ENat.lt_one_iff_eq_zero]
+  · by_contra! hh
+    grind [minAntichainPartition_eq_zero_iff, not_nonempty_iff, ENat.lt_one_iff_eq_zero]
+
+theorem minAntichainPartition_le_card : minAntichainPartition α r ≤ ENat.card α := by
+  obtain ⟨s, hs₁, hs₂⟩ := exists_IsAntichainPartition α r
+  refine iInf_le_iff.mpr fun b hb ↦ ?_
+  grw [hb ⟨s, hs₁⟩, hs₂]
+
+theorem minAntichainPartition_ne_top_of_finite [Finite α] : minAntichainPartition α r ≠ ⊤ := by
+  have := minAntichainPartition_le_card α r
+  rw [ENat.card_eq_coe_natCard, ENat.le_coe_iff] at this
+  obtain ⟨n, hn, _⟩ := this
+  simp [hn]
+
+theorem minAntichainPartition_le_encard (S : Set (Set α)) (h : IsAntichainPartition α r S) :
+    minAntichainPartition α r ≤ S.encard :=
+  iInf_le_iff.mpr fun _ hx ↦ hx ⟨S, h⟩
+
+theorem minAntichainPartition_exists :
+    ∃ (S : Set (Set α)), S.encard = minAntichainPartition α r ∧ IsAntichainPartition α r S := by
+  have : Nonempty ({s : Set (Set α) // IsAntichainPartition α r s}) := by
+    obtain ⟨s, hs, _⟩ := exists_IsAntichainPartition α r
+    exact ⟨s, hs⟩
+  obtain ⟨s, hs⟩ := @ENat.exists_eq_iInf _ this (·.val.encard)
+  exact ⟨s.val, hs, s.property⟩
+
+end AntichainPartition
+
 section mirsky
 
 variable (α : Type*) (r : α → α → Prop)
 
-theorem le_minAntichainPartition_of_isChain (s : Set α) (h : IsChain r s) :
+theorem le_minAntichainPartition_of_isChain {α} {r} {s : Set α} (h : IsChain r s) :
     s.encard ≤ minAntichainPartition α r := by
   by_contra! hh
   obtain ⟨t, ht₁, ht₂⟩ := minAntichainPartition_exists α r
@@ -627,37 +555,31 @@ theorem le_minAntichainPartition_of_isChain (s : Set α) (h : IsChain r s) :
 theorem chainHeight_le_minAntichainPartition : chainHeight α r ≤ minAntichainPartition α r := by
   refine ENat.forall_natCast_le_iff_le.mp fun m h ↦ ?_
   obtain ⟨s, hs₁, hs₂⟩ := exists_of_le_chainHeight α r m (by simp_all)
-  exact hs₁ ▸ le_minAntichainPartition_of_isChain α r s hs₂
+  exact hs₁ ▸ le_minAntichainPartition_of_isChain hs₂
 
-theorem isAntiChain_isMax [PartialOrder α] : IsAntichain (· ≤ ·) {x : α | IsMax x} := by
-  intro x _ y _ _
-  simp only [Pi.compl_apply, compl_iff_not]
-  by_cases y ≤ x <;> grind [IsMax, le_antisymm]
-
-theorem isMax_inter_nonempty {α : Type*} [Preorder α] [Nonempty α] (hc : chainHeight α (· ≤ ·) ≠ ⊤)
-    (s : Set α) (hs : IsMaxChain (· ≤ ·) s) : ({x : α | IsMax x} ∩ s).Nonempty := by
-  have : Finite s := finite_of_chainHeight_ne_top α (· ≤ ·) s hs.isChain hc
+theorem maximal_inter_nonempty {α} [Preorder α] [Nonempty α] (hc : chainHeight α (· ≤ ·) ≠ ⊤)
+    {s : Set α} (hs : IsMaxChain (· ≤ ·) s) : ({x | Maximal ⊤ x} ∩ s).Nonempty := by
+  have : Finite s := finite_of_chainHeight_ne_top hs.isChain hc
   obtain ⟨k, hk₁, hk₂⟩ := hs.exists_isMax <| hs.nonempty_iff.mp (by assumption)
-  exact ⟨k, Set.mem_inter (fun a ha ↦ hk₂ ha) hk₁⟩
+  exact ⟨k, Set.mem_inter (by simp [Pi.top_def, hk₂]) hk₁⟩
 
-theorem chainHeight_sdiff_add_one_le (α : Type*) [LE α] (hc : chainHeight α (· ≤ ·) ≠ ⊤) (s : Set α)
-    (hs₂ : ∀ (t : Set α), IsMaxChain (· ≤ ·) t → (s ∩ t).Nonempty) :
+theorem chainHeight_sdiff_add_one_le {α} [LE α] (hc : chainHeight α (· ≤ ·) ≠ ⊤) {s : Set α}
+    (hs : ∀ {t : Set α}, IsMaxChain (· ≤ ·) t → (s ∩ t).Nonempty) :
     chainHeight ↑(Set.univ \ s) (· ≤ ·) + 1 ≤ chainHeight α (· ≤ ·) := by
-  have := chainHeight_subset α (· ≤ ·) (Set.univ \ s) Set.univ (by simp)
+  have := chainHeight_subset (r := (· ≤ ·)) (Set.univ \ s) Set.univ (by simp)
   have hhc := lt_top_iff_ne_top.mp <| lt_of_le_of_lt
-    (chainHeight_coe_univ α (· ≤ ·) ▸ this) (lt_top_iff_ne_top.mpr hc)
+    (chainHeight_coe_univ ▸ this) (lt_top_iff_ne_top.mpr hc)
   obtain ⟨c, hc₁, hc₂⟩ := exists_of_chainHeight_ne_top _ (· ≤ ·) hhc
   obtain ⟨d, hd₁, hd₂⟩ := exists_of_chainHeight_ne_top α (· ≤ ·) hc
   let e₁ : Set α := Subtype.val '' c
   let e₂ : IsChain (· ≤ ·) e₁ := hc₂.image _ _ Subtype.val (fun _ _ x ↦ x)
-  have : Finite e₁ := finite_of_chainHeight_ne_top α (· ≤ ·) e₁ e₂ hc
-  have tt := encard_lt_chainHeight_of_not_isMaxChain α (· ≤ ·) e₁ e₂
+  have : Finite e₁ := finite_of_chainHeight_ne_top e₂ hc
+  have tt := encard_lt_chainHeight_of_not_isMaxChain e₂
     (by grind [Set.inter_nonempty_iff_exists_right])
   have : c.encard = e₁.encard := by simp [e₁, Function.Injective.encard_image]
   grw [← hc₁, this, Order.add_one_le_of_lt tt]
 
-theorem minAntichainPartition_le_sdiff_add_one (α : Type*) [LE α]
-    (s : Set α) (hs : IsAntichain (· ≤ ·) s) :
+theorem minAntichainPartition_le_sdiff_add_one [LE α] {s : Set α} (hs : IsAntichain (· ≤ ·) s) :
     minAntichainPartition α (· ≤ ·) ≤
       minAntichainPartition ↑(Set.univ \ s) (· ≤ ·) + 1 := by
   obtain ⟨S, hS₁, hS₂⟩ := minAntichainPartition_exists ↑(Set.univ \ s) (· ≤ ·)
@@ -690,9 +612,9 @@ theorem minAntichainPartition_eq_chainHeight [PartialOrder α] :
     · by_cases hc : chainHeight α (· ≤ ·) = ⊤
       · simp [hc]
       · simp only [Nat.cast_add, Nat.cast_one]
-        have := minAntichainPartition_le_sdiff_add_one α _ (isAntiChain_isMax α)
+        have := minAntichainPartition_le_sdiff_add_one α <| setOf_maximal_antichain ⊤
         have := ih _ <| ENat.addLECancellable_coe 1 |>.add_le_add_iff_right.mp <| le_trans h this
-        grw [add_le_add_right this 1, chainHeight_sdiff_add_one_le α hc _ (isMax_inter_nonempty hc)]
+        grw [add_le_add_right this 1, chainHeight_sdiff_add_one_le hc (maximal_inter_nonempty hc)]
     · grind [not_isEmpty_iff, chainHeight_eq_zero_iff, minAntichainPartition_eq_zero_iff]
 
 #print axioms minAntichainPartition_eq_chainHeight
@@ -703,7 +625,7 @@ section dilworth
 
 variable (α : Type*) (r : α → α → Prop)
 
-theorem le_minChainPartition_of_isAntichain (s : Set α) (h : IsAntichain r s) :
+theorem le_minChainPartition_of_isAntichain {α} {r} {s : Set α} (h : IsAntichain r s) :
     s.encard ≤ minChainPartition α r := by
   by_contra! hh
   obtain ⟨t, ht₁, ht₂⟩ := minChainPartition_exists α r
@@ -720,9 +642,9 @@ theorem le_minChainPartition_of_isAntichain (s : Set α) (h : IsAntichain r s) :
 theorem antichainWidth_le_minChainPartition : antichainWidth α r ≤ minChainPartition α r := by
   refine ENat.forall_natCast_le_iff_le.mp fun m h ↦ ?_
   obtain ⟨s, hs₁, hs₂⟩ := exists_of_le_antichainWidth α r m (by simp_all)
-  exact hs₁ ▸ le_minChainPartition_of_isAntichain α r s hs₂
+  exact hs₁ ▸ le_minChainPartition_of_isAntichain hs₂
 
-theorem minChainPartition_le_sdiff_add_one (α : Type*) [LE α] (s : Set α) (hs : IsChain (· ≤ ·) s) :
+theorem minChainPartition_le_sdiff_add_one [LE α] {s : Set α} (hs : IsChain (· ≤ ·) s) :
     minChainPartition α (· ≤ ·) ≤ minChainPartition ↑(Set.univ \ s) (· ≤ ·) + 1 := by
   obtain ⟨S, hS₁, hS₂⟩ := minChainPartition_exists ↑(Set.univ \ s) (· ≤ ·)
   let T : Set (Set α) := {s} ∪ ((Subtype.val '' ·) '' S)
@@ -742,7 +664,7 @@ theorem minChainPartition_le_sdiff_add_one (α : Type*) [LE α] (s : Set α) (hs
       simpa using this
   grw [minChainPartition_le_encard α (· ≤ ·) T this, hT]
 
-theorem pigeonhole_inter_eq {α : Type u_1} {r : α → α → Prop} {S : Set (Set α)} [Finite S]
+theorem pigeonhole_inter_eq {α} {r} {S : Set (Set α)} [Finite S]
     (hS : IsChainPartition α r S) {a : Set α} (ha₁ : a.encard = S.encard) (ha₂ : IsAntichain r a) :
     ∀ s ∈ S, ∃ x : α, (a ∩ s) = {x} := by
   intro s hs
@@ -770,7 +692,7 @@ theorem pigeonhole_inter_eq {α : Type u_1} {r : α → α → Prop} {S : Set (S
     enat_to_nat
     exact Nat.sub_one_lt_of_lt <| Set.Nonempty.ncard_pos S.toFinite <| Set.nonempty_of_mem hs
 
-theorem pigeonhole_delete_largest (C : Set (Set α)) (hC₁ : IsChainPartition α r C)
+theorem pigeonhole_delete_largest {α} {r} {C : Set (Set α)} (hC₁ : IsChainPartition α r C)
     (hS₂ : C.encard = antichainWidth α r) (hnetop : antichainWidth α r ≠ ⊤)
     (c d : Set α) (hd : IsChain r d) (hc : c ∈ C)
     (h : ∀ x ∈ c, ∀ a : Set α, IsAntichain r a → a.encard = antichainWidth α r → x ∈ a → x ∈ d) :
@@ -786,10 +708,10 @@ theorem pigeonhole_delete_largest (C : Set (Set α)) (hC₁ : IsChainPartition �
         sdiff_sdiff_right_self, Set.inf_eq_inter, Set.encard_univ_coe, add_comm (b ∩ d).encard]
       refine add_le_add_left (Set.encard_le_one_iff_subsingleton.mpr ?_) (b \ d).encard
       exact inter_subsingleton_of_isAntichain_of_isChain hb₂ hd
-    grw [hn, ← hb₁, hbne, encard_le_antichainWidth _ _ _ hna]
+    grw [hn, ← hb₁, hbne, encard_le_antichainWidth hna]
   · grw [hn]
-    have := antichainWidth_subset α r ↑(Set.univ \ d) Set.univ (by simp)
-    refine Order.add_one_le_of_lt <| lt_of_le_of_ne (antichainWidth_coe_univ α r ▸ this) ?_
+    have := antichainWidth_coe_univ ▸ @antichainWidth_subset α r ↑(Set.univ \ d) Set.univ (by simp)
+    refine Order.add_one_le_of_lt <| lt_of_le_of_ne this ?_
     by_contra! hh
     obtain ⟨a, ha₁, ha₂⟩ := exists_of_le_antichainWidth ↑(Set.univ \ d) (r · ·)
       (antichainWidth ↑(Set.univ \ d) (r · ·)).toNat (by simp [ENat.coe_toNat_le_self])
@@ -807,7 +729,7 @@ abbrev overlap_antichain {α : Type*} [LE α] (C : Set (Set α)) (c : C) :=
 def overlap_top {α : Type*} [LE α] (C : Set (Set α)) :=
   { x | ∃ c hx, @IsTop (overlap_antichain C c) _ ⟨x, hx⟩ }
 
-theorem isAntichain_overlap_top [PartialOrder α] (C : Set (Set α)) [Finite C]
+theorem isAntichain_overlap_top {α} [PartialOrder α] {C : Set (Set α)} [Finite C]
     (hC : IsChainPartition α (· ≤ ·) C) :
     IsAntichain (· ≤ ·) (overlap_top C) := by
   intro c hc d hd hne
@@ -830,8 +752,8 @@ theorem isAntichain_overlap_top [PartialOrder α] (C : Set (Set α)) [Finite C]
     grw [ss] at sm
     exact sm
 
-theorem overlap_top_encard_eq [Finite α] [PartialOrder α] (C : Set (Set α))
-    (hC : IsChainPartition α (· ≤ ·) C) (A : Set α) (hA₁ : A.encard = C.encard)
+theorem overlap_top_encard_eq {α} [Finite α] [PartialOrder α] {C : Set (Set α)}
+    (hC : IsChainPartition α (· ≤ ·) C) {A : Set α} (hA₁ : A.encard = C.encard)
     (hA₂ : IsAntichain (· ≤ ·) A) :
     (overlap_top C).encard = C.encard := by
   simp only [Subtype.exists, overlap_top]
@@ -871,7 +793,7 @@ theorem minChainPartition_eq_antichainWidth [PartialOrder α] [Finite α] :
     obtain ⟨C, hC₁, hC₂⟩ := minChainPartition_exists ↑(Set.univ \ {a}) (· ≤ ·)
     obtain ⟨A, hA₁, hA₂⟩ := exists_eq_antichainWidth_of_finite ↑(Set.univ \ {a}) (· ≤ ·)
     let S : Set ↑(Set.univ \ {a}) := overlap_top C
-    have Santi : IsAntichain (· ≤ ·) S := isAntichain_overlap_top _ C hC₂
+    have Santi : IsAntichain (· ≤ ·) S := isAntichain_overlap_top hC₂
     by_cases h' : ∃ x : S, x.1 ≤ a
     · obtain ⟨x, hx⟩ := h'
       obtain ⟨t, ht, _⟩ := hC₂.1 x
@@ -894,7 +816,7 @@ theorem minChainPartition_eq_antichainWidth [PartialOrder α] [Finite α] :
             exact Function.bijective_iff_has_inverse.mpr ⟨fun x ↦ ⟨x.1, by grind⟩,
               by grind [Function.leftInverse_iff_comp, Function.rightInverse_iff_comp]⟩
           · simp
-        have hpg := pigeonhole_delete_largest _ (· ≤ ·) C hC₂ (by grind)
+        have hpg := pigeonhole_delete_largest hC₂ (by grind)
           (antichainWidth_ne_top_of_finite _ _) t Z Zchain ht.1 (fun y hy s _ _ _ ↦ by
             have := x.2
             simp only [Set.coe_setOf, Set.mem_setOf_eq, Subtype.exists, overlap_top, S] at this
@@ -902,18 +824,18 @@ theorem minChainPartition_eq_antichainWidth [PartialOrder α] [Finite α] :
             simpa [Z, hy] using hl ⟨y, by grind, ⟨s, by grind⟩⟩
           )
         simp [hA₁, this, hpg]
-      grw [hm, minChainPartition_le_sdiff_add_one α K Kchain]
+      grw [hm, minChainPartition_le_sdiff_add_one α Kchain]
       rw [Keq₁, Keq₂, hA₁]
-      exact antichainWidth_coe_univ α _ ▸ antichainWidth_subset α _ _ _ (by simp)
+      exact antichainWidth_coe_univ (α := α) ▸ antichainWidth_subset _ _ (by simp)
     · have hia : IsAntichain (· ≤ ·) (Subtype.val '' (overlap_top C) ∪ {a}) := by
         refine IsAntichain.union.mpr ⟨Santi.image _ (by simp), IsAntichain.singleton, ?_⟩
         simp only [Subtype.exists, Pi.compl_apply, compl_iff_not] at ⊢ h'
         grind [Maximal]
       have hCencard : C.encard + 1 = (Subtype.val '' S ∪ {a}).encard := by
         rw [Set.encard_union_eq (by simp), Function.Injective.encard_image (by simp)]
-        simp [S, overlap_top_encard_eq _ C hC₂ A (hC₁ ▸ heq ▸ hA₁) hA₂]
-      grw [hm, minChainPartition_le_sdiff_add_one α {a} (by simp),
-        minChainPartition_le_encard _ _ _ hC₂, hCencard, encard_le_antichainWidth _ _ _ hia]
+        simp [S, overlap_top_encard_eq hC₂ (hC₁ ▸ heq ▸ hA₁) hA₂]
+      grw [hm, minChainPartition_le_sdiff_add_one α (s := {a}) (by simp),
+        minChainPartition_le_encard _ _ _ hC₂, hCencard, encard_le_antichainWidth hia]
 
 #print axioms minChainPartition_eq_antichainWidth
 
