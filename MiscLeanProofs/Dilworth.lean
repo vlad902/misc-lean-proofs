@@ -269,7 +269,7 @@ theorem chainHeight_eq_zero_iff : chainHeight α r = 0 ↔ IsEmpty α := by
     simp at this
   · simp_all [chainHeight, Set.eq_empty_of_isEmpty]
 
-theorem exists_of_le_chainHeight (n : ℕ) (h : n ≤ chainHeight α r) :
+theorem exists_isChain_of_le_chainHeight (n : ℕ) (h : n ≤ chainHeight α r) :
     ∃ s : Set α, s.encard = n ∧ IsChain r s := by
   by_cases h' : n = 0
   · exact ⟨∅, by simp [h']⟩
@@ -314,7 +314,7 @@ theorem encard_lt_chainHeight_of_not_isMaxChain {s : Set α} [Finite s] (h₁ : 
 theorem chainHeight_le_of_relEmbedding (e : r ↪r r') :
     chainHeight α r ≤ chainHeight β r' := by
   refine forall_natCast_le_iff_le.mp fun n hn ↦ ?_
-  obtain ⟨a, ha₁, ha₂⟩ := exists_of_le_chainHeight α r n hn
+  obtain ⟨a, ha₁, ha₂⟩ := exists_isChain_of_le_chainHeight α r n hn
   have : (e '' a).encard = n := by rw [Function.Injective.encard_image e.injective, ha₁]
   exact this ▸ encard_le_chainHeight (s := e '' a) <| IsChain.image_relEmbedding_iff.mpr ha₂
 
@@ -324,12 +324,11 @@ theorem chainHeight_eq_of_relIso (e : r ≃r r') :
 
 theorem chainHeight_coe_univ :
     chainHeight ↑Set.univ (r ·.val ·.val) = chainHeight α r :=
-  chainHeight_eq_of_relIso (e := { toEquiv := Equiv.Set.univ α, map_rel_iff' := by simp })
+  chainHeight_eq_of_relIso { toEquiv := Equiv.Set.univ α, map_rel_iff' := by simp }
 
 theorem chainHeight_subset (s t : Set α) (h : s ⊆ t) :
     chainHeight s (r · ·) ≤ chainHeight t (r · ·) :=
-  chainHeight_le_of_relEmbedding
-    { toFun := fun x ↦ ⟨x.1, h x.2⟩, inj' := Set.inclusion_injective h, map_rel_iff' := by simp }
+  chainHeight_le_of_relEmbedding (Subrel.inclusionEmbedding r h)
 
 end height
 
@@ -417,12 +416,11 @@ theorem antichainWidth_eq_of_relIso (e : r ≃r r') :
 
 theorem antichainWidth_coe_univ :
     antichainWidth ↑Set.univ (r ·.val ·.val) = antichainWidth α r :=
-  antichainWidth_eq_of_relIso (e := { toEquiv := Equiv.Set.univ α, map_rel_iff' := by simp })
+  antichainWidth_eq_of_relIso { toEquiv := Equiv.Set.univ α, map_rel_iff' := by simp }
 
 theorem antichainWidth_subset (s t : Set α) (h : s ⊆ t) :
     antichainWidth s (r · ·) ≤ antichainWidth t (r · ·) :=
-  antichainWidth_le_of_relEmbedding
-    { toFun := fun x ↦ ⟨x.1, h x.2⟩, inj' := Set.inclusion_injective h, map_rel_iff' := by simp }
+  antichainWidth_le_of_relEmbedding (Subrel.inclusionEmbedding r h)
 
 end width
 
@@ -554,7 +552,7 @@ theorem le_minAntichainPartition_of_isChain {α} {r} {s : Set α} (h : IsChain r
 
 theorem chainHeight_le_minAntichainPartition : chainHeight α r ≤ minAntichainPartition α r := by
   refine ENat.forall_natCast_le_iff_le.mp fun m h ↦ ?_
-  obtain ⟨s, hs₁, hs₂⟩ := exists_of_le_chainHeight α r m (by simp_all)
+  obtain ⟨s, hs₁, hs₂⟩ := exists_isChain_of_le_chainHeight α r m (by simp_all)
   exact hs₁ ▸ le_minAntichainPartition_of_isChain hs₂
 
 theorem maximal_inter_nonempty {α} [Preorder α] [Nonempty α] (hc : chainHeight α (· ≤ ·) ≠ ⊤)
@@ -563,32 +561,32 @@ theorem maximal_inter_nonempty {α} [Preorder α] [Nonempty α] (hc : chainHeigh
   obtain ⟨k, hk₁, hk₂⟩ := hs.exists_isMax <| hs.nonempty_iff.mp (by assumption)
   exact ⟨k, Set.mem_inter (by simp [Pi.top_def, hk₂]) hk₁⟩
 
-theorem chainHeight_sdiff_add_one_le {α} [LE α] (hc : chainHeight α (· ≤ ·) ≠ ⊤) {s : Set α}
-    (hs : ∀ {t : Set α}, IsMaxChain (· ≤ ·) t → (s ∩ t).Nonempty) :
-    chainHeight ↑(Set.univ \ s) (· ≤ ·) + 1 ≤ chainHeight α (· ≤ ·) := by
-  have := chainHeight_subset (r := (· ≤ ·)) (Set.univ \ s) Set.univ (by simp)
+theorem chainHeight_sdiff_add_one_le {α} {r} (hc : chainHeight α r ≠ ⊤) {s : Set α}
+    (hs : ∀ {t : Set α}, IsMaxChain r t → (s ∩ t).Nonempty) :
+    chainHeight ↑(Set.univ \ s) (r ·.val ·) + 1 ≤ chainHeight α r := by
+  have := chainHeight_subset (r := r) (Set.univ \ s) Set.univ (by simp)
   have hhc := lt_top_iff_ne_top.mp <| lt_of_le_of_lt
     (chainHeight_coe_univ ▸ this) (lt_top_iff_ne_top.mpr hc)
-  obtain ⟨c, hc₁, hc₂⟩ := exists_of_chainHeight_ne_top _ (· ≤ ·) hhc
-  obtain ⟨d, hd₁, hd₂⟩ := exists_of_chainHeight_ne_top α (· ≤ ·) hc
+  obtain ⟨c, hc₁, hc₂⟩ := exists_of_chainHeight_ne_top _ _ hhc
+  obtain ⟨d, hd₁, hd₂⟩ := exists_of_chainHeight_ne_top α _ hc
   let e₁ : Set α := Subtype.val '' c
-  let e₂ : IsChain (· ≤ ·) e₁ := hc₂.image _ _ Subtype.val (fun _ _ x ↦ x)
+  let e₂ : IsChain _ e₁ := hc₂.image _ _ Subtype.val (fun _ _ x ↦ x)
   have : Finite e₁ := finite_of_chainHeight_ne_top e₂ hc
   have tt := encard_lt_chainHeight_of_not_isMaxChain e₂
     (by grind [Set.inter_nonempty_iff_exists_right])
   have : c.encard = e₁.encard := by simp [e₁, Function.Injective.encard_image]
   grw [← hc₁, this, Order.add_one_le_of_lt tt]
 
-theorem minAntichainPartition_le_sdiff_add_one [LE α] {s : Set α} (hs : IsAntichain (· ≤ ·) s) :
-    minAntichainPartition α (· ≤ ·) ≤
-      minAntichainPartition ↑(Set.univ \ s) (· ≤ ·) + 1 := by
-  obtain ⟨S, hS₁, hS₂⟩ := minAntichainPartition_exists ↑(Set.univ \ s) (· ≤ ·)
+theorem minAntichainPartition_le_sdiff_add_one {s : Set α} (hs : IsAntichain r s) :
+    minAntichainPartition α r ≤
+      minAntichainPartition ↑(Set.univ \ s) (r · ·) + 1 := by
+  obtain ⟨S, hS₁, hS₂⟩ := minAntichainPartition_exists ↑(Set.univ \ s) (r · ·)
   let T : Set (Set α) := { s } ∪ ((Subtype.val '' ·) '' S)
-  have hT : T.encard ≤ minAntichainPartition ↑(Set.univ \ s) (· ≤ ·) + 1 := by
+  have hT : T.encard ≤ minAntichainPartition ↑(Set.univ \ s) (r · ·) + 1 := by
     simp only [Set.singleton_union, ← hS₁, T]
     grw [Set.encard_insert_le]
     rw [Function.Injective.encard_image Set.image_val_injective]
-  have : IsAntichainPartition α (· ≤ ·) T := by
+  have : IsAntichainPartition α r T := by
     simp only [IsAntichainPartition, Set.singleton_union, Set.mem_insert_iff,
       Set.mem_image, forall_eq_or_imp, hs, forall_exists_index, and_imp,
       forall_apply_eq_imp_iff₂, true_and, T]
@@ -599,7 +597,7 @@ theorem minAntichainPartition_le_sdiff_add_one [LE α] {s : Set α} (hs : IsAnti
       · exact ⟨s, by grind⟩
     · have := @hS₂.2 _ ha ⟨b, by grind⟩ (by grind) ⟨c, by grind⟩ (by grind) (by simp [hbc])
       simpa using this
-  grw [minAntichainPartition_le_encard α (· ≤ ·) T this, hT]
+  grw [minAntichainPartition_le_encard α r T this, hT]
 
 theorem minAntichainPartition_eq_chainHeight [PartialOrder α] :
     minAntichainPartition α (· ≤ ·) = chainHeight α (· ≤ ·) := by
@@ -612,9 +610,10 @@ theorem minAntichainPartition_eq_chainHeight [PartialOrder α] :
     · by_cases hc : chainHeight α (· ≤ ·) = ⊤
       · simp [hc]
       · simp only [Nat.cast_add, Nat.cast_one]
-        have := minAntichainPartition_le_sdiff_add_one α <| setOf_maximal_antichain ⊤
+        have := minAntichainPartition_le_sdiff_add_one α _ <| setOf_maximal_antichain ⊤
         have := ih _ <| ENat.addLECancellable_coe 1 |>.add_le_add_iff_right.mp <| le_trans h this
-        grw [add_le_add_right this 1, chainHeight_sdiff_add_one_le hc (maximal_inter_nonempty hc)]
+        grw [add_le_add_right this 1]
+        simpa using chainHeight_sdiff_add_one_le hc (maximal_inter_nonempty hc)
     · grind [not_isEmpty_iff, chainHeight_eq_zero_iff, minAntichainPartition_eq_zero_iff]
 
 #print axioms minAntichainPartition_eq_chainHeight
