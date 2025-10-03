@@ -10,7 +10,7 @@ variable {α : Type u}
 variable {L L₁ L₂ : List (α × Bool)}
 
 theorem exists_of_not_reduced [DecidableEq α] (h : ¬IsReduced L) : ∃ n, n + 1 < L.length ∧ FreeGroup.mk (L.take n) = FreeGroup.mk (L.take (n + 2)) := by
-  obtain ⟨n, hn₁, hn₂⟩ := List.chain'_of_not h
+  obtain ⟨n, hn₁, hn₂⟩ := List.exists_not_getElem_of_not_isChain h
   refine ⟨n, by omega, ?_⟩
   conv => rhs; rw [← reduce.self, List.take_add, ← reduce_append_reduce_reduce, reduce.self]
   repeat rw [← List.getElem_cons_drop (by omega), List.take_succ_cons]
@@ -49,7 +49,7 @@ theorem darts_toProd_eq {V : Type u} {G : SimpleGraph V} {v w : V} {p : G.Walk v
   ext
   · by_cases h' : n = 0
     · simp [h', List.getElem_zero]
-    · have := p.chain'_dartAdj_darts.getElem (n - 1) (by omega)
+    · have := p.isChain_dartAdj_darts.getElem (n - 1) (by omega)
       simp only [DartAdj, show n - 1 + 1 = n by omega] at this
       simp [← p.cons_map_snd_darts, List.getElem_cons, ← this, h']
   · simp [← p.cons_map_snd_darts]
@@ -74,19 +74,19 @@ theorem IsPath.eq_penultimate_of_mem_edges {V : Type u} {G : SimpleGraph V} {u v
   simp_all
 
 theorem IsTree.isPath_of_list_chain {V : Type u} {G : SimpleGraph V} (hG : G.IsTree) {v w : V} (p : G.Walk v w) :
-    p.IsPath ↔ List.Chain' (fun x y => x ≠ y) p.edges := by
+    p.IsPath ↔ List.IsChain (· ≠ ·) p.edges := by
   classical
   constructor
   · intro hP
     rw [isPath_def] at hP
-    exact List.Pairwise.chain' <| edges_nodup_of_support_nodup <| hP
+    exact List.Pairwise.isChain <| edges_nodup_of_support_nodup <| hP
   · intro hL
     induction p with
     | nil => simp
     | cons head tail ih =>
         rename_i u' v' w'
         rw [edges_cons] at hL
-        have hcc := List.chain'_cons'.mp hL
+        have hcc := List.isChain_cons'.mp hL
         refine (cons_isPath_iff head tail).mpr ⟨ih hcc.2, ?_⟩
         rcases tail.length.eq_zero_or_pos with h' | h'
         · simp [SimpleGraph.Walk.nil_iff_support_eq.mp (nil_iff_length_eq.mpr h'), head.ne]
@@ -109,7 +109,7 @@ theorem IsTree.isPath_of_list_chain {V : Type u} {G : SimpleGraph V} (hG : G.IsT
 theorem IsTree.isPath_of_isTrail {V : Type u} {G : SimpleGraph V} (hG : G.IsTree) {v w : V} (p : G.Walk v w)
     (h : p.IsTrail) : p.IsPath := by
   rw [isTrail_def] at h
-  exact IsTree.isPath_of_list_chain hG p |>.mpr <| List.Pairwise.chain' h
+  exact IsTree.isPath_of_list_chain hG p |>.mpr <| List.Pairwise.isChain h
 
 end SimpleGraph.Walk
 

@@ -179,9 +179,9 @@ theorem IsFreeGroup_of_IsTree [DecidableEq S] (h₁ : CG.Graph.IsTree) (h₂ : �
     have : p.IsPath := by
       apply Walk.IsTree.isPath_of_list_chain h₁ p |>.mpr
       by_contra hh
-      obtain ⟨n, h', h''⟩ := List.chain'_of_not hh
+      obtain ⟨n, h', h''⟩ := List.exists_not_getElem_of_not_isChain hh
       have : n + 1 + 1 < p.support.length := by grind
-      have := ne_of_adj _ <| p.chain'_adj_support.getElem n (by grind)
+      have := ne_of_adj _ <| p.isChain_adj_support.getElem n (by grind)
       have : p.support[n] = p.support[n + 1 + 1] := by simpa [this, p.edges_eq_support] using h''
       simp (disch := grind) only [hp, List.getElem_scanr, ← List.prod_eq_foldr,
         List.prod_drop_succ, List.getElem_map, ← mul_assoc, right_eq_mul, aux] at this
@@ -251,7 +251,7 @@ theorem IsTree_of_FreeGroup (CG : CayleyGraph (FreeGroup S) (Set.range FreeGroup
     have : FreeGroup.IsReduced (gens_of_walk p) := by
       by_contra hhh
       obtain ⟨n, hl₁, hl₂⟩ := FreeGroup.exists_of_not_reduced hhh
-      apply List.chain'_getElem (List.Pairwise.chain' hh.1) n (by grind)
+      apply (List.Pairwise.isChain hh.1).getElem n (by grind)
       have := freeGroup_mk_sublist p n (by grind)
       rw [hl₂, freeGroup_mk_sublist p (n + 2) (by grind), mul_right_inj, inv_inj] at this
       simp (disch := grind) [p.edges_eq_support, ← p.getVert_eq_support_getElem, ← this]
