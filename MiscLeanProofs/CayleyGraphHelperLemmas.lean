@@ -41,21 +41,22 @@ end Subgroup
 
 namespace SimpleGraph.Walk
 
--- #26720
-theorem darts_toProd_eq {V : Type u} {G : SimpleGraph V} {v w : V} {p : G.Walk v w} (n : ℕ) (h : n < p.darts.length) :
-    p.darts[n].toProd = (p.getVert n, p.getVert (n + 1)) := by
-  rw [p.length_darts] at h
-  repeat rw [p.getVert_eq_support_getElem (by omega)]
-  ext
-  · by_cases h' : n = 0
-    · simp [h', List.getElem_zero]
-    · have := p.isChain_dartAdj_darts.getElem (n - 1) (by omega)
-      simp only [DartAdj, show n - 1 + 1 = n by omega] at this
-      simp [← p.cons_map_snd_darts, List.getElem_cons, ← this, h']
-  · simp [← p.cons_map_snd_darts]
+variable {V : Type u} {G : SimpleGraph V}
 
-theorem edges_eq_support {V : Type u} {G : SimpleGraph V} {v w : V} {p : G.Walk v w} :
-    p.edges = (p.support.zip p.support.tail).map (fun x => s(x.1, x.2)) := by
+-- #26720
+theorem darts_eq_getVert {u v : V} {p : G.Walk u v} (n : ℕ) (h : n < p.darts.length) :
+    p.darts[n] = ⟨⟨p.getVert n, p.getVert (n + 1)⟩, p.adj_getVert_succ (p.length_darts ▸ h)⟩ := by
+  rw [p.length_darts] at h
+  ext
+  · simp only [p.getVert_eq_support_getElem (le_of_lt h)]
+    by_cases h' : n = 0
+    · simp [h', List.getElem_zero]
+    · have := p.isChain_dartAdj_darts.getElem (n - 1) (by grind)
+      grind [DartAdj, =_ cons_map_snd_darts]
+  · simp [p.getVert_eq_support_getElem h, ← p.cons_map_snd_darts]
+
+theorem edges_eq_zipWith_support {u v : V} {p : G.Walk u v} :
+    p.edges = List.zipWith (s(·, ·)) p.support p.support.tail := by
   induction p with
   | nil => simp
   | cons _ p' ih => cases p' <;> simp [edges_cons, ih]

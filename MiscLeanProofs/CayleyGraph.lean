@@ -1,5 +1,9 @@
-import Mathlib.Algebra.Group.Pointwise.Set.Finite
-import Mathlib.Data.Set.Card
+/-
+Copyright (c) 2025 Vlad Tsyrklevich. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Vlad Tsyrklevich
+-/
+
 import Mathlib.GroupTheory.FreeGroup.IsFreeGroup
 import MiscLeanProofs.CayleyGraphHelperLemmas
 
@@ -9,8 +13,11 @@ import MiscLeanProofs.CayleyGraphHelperLemmas
 Define a Cayley graph as a group with a generating set that does not include the identity
 to satisfy representing the graph as a SimpleGraph.
 
-Then prove conditions under which Cayley graphs are connected/trees/locally finite.
-Also show that Cayley Graphs of FreeGroups are trees and some basic properties of isomorphisms.
+The main results are `isFreeGroup_of_isTree` and `isTree_of_freeGroupBasis` proving that Cayley
+graphs of free groups are trees and that Cayley graphs are trees if they satisfy a condition on
+the generating set. conditions under which a Cayley Graph is a tree.
+
+Some small lemmas about when Cayley graphs are connected/trees/locally finite.
 
 Follows Clara Löh's Geometric Group Theory chapter 3.
 
@@ -41,7 +48,7 @@ def Graph : SimpleGraph G where
 theorem adj_iff {x y} : CG.Graph.Adj x y ↔ x * y⁻¹ ∈ S ∨ y * x⁻¹ ∈ S := by
   constructor <;> exact id
 
-def pushforward_group {H : Type*} [Group H] (e : G ≃* H) (CG : CayleyGraph G S) : CayleyGraph H (e '' S) :=
+theorem pushforward_group {H : Type*} [Group H] (e : G ≃* H) (CG : CayleyGraph G S) : CayleyGraph H (e '' S) :=
   ⟨fun ⟨s, hsS, hs⟩ ↦
     have : s = (1 : G) := by simpa [MulEquiv.map_one] using hs
     CG.one_not_mem (this ▸ hsS)⟩
@@ -63,7 +70,7 @@ def iso_of_mulEquiv {H : Type*} [Group H] (e : G ≃* H) :
       · exact Or.inl ⟨x * y⁻¹, h', by simp [MulEquiv.map_mul, MulEquiv.map_inv]⟩
       · exact Or.inr ⟨y * x⁻¹, h', by simp [MulEquiv.map_mul, MulEquiv.map_inv]⟩
 
-def pushforward_generators {S₁ S₂ : Set G} (CG : CayleyGraph G S₁) (h : S₁ = S₂) : CayleyGraph G S₂ :=
+theorem pushforward_generators {S₁ S₂ : Set G} (CG : CayleyGraph G S₁) (h : S₁ = S₂) : CayleyGraph G S₂ :=
   ⟨h ▸ CG.one_not_mem⟩
 
 def iso_of_eq {S₁ S₂ : Set G} (CG : CayleyGraph G S₁) (h : S₁ = S₂) :
@@ -160,7 +167,7 @@ theorem walk_of_generator_list {v w : G} (l : List (S × Bool)) (h₁ : (l.map a
       split <;> simp [← mul_assoc]
     exact ⟨Walk.cons' _ _ _ this L, by simp_all⟩
 
-theorem IsFreeGroup_of_IsTree [DecidableEq S] (h₁ : CG.Graph.IsTree) (h₂ : ∀ s t : S, (s : G) * t ≠ 1) :
+theorem isFreeGroup_of_isTree [DecidableEq S] (h₁ : CG.Graph.IsTree) (h₂ : ∀ s t : S, (s : G) * t ≠ 1) :
     IsFreeGroup G := by
   let ι := fun (x : S) ↦ (x : G)
   refine ⟨⟨S, ⟨⟨MulEquiv.ofBijective (FreeGroup.lift ι) ⟨?_, ?_⟩ |>.symm⟩⟩⟩⟩
@@ -182,7 +189,7 @@ theorem IsFreeGroup_of_IsTree [DecidableEq S] (h₁ : CG.Graph.IsTree) (h₂ : �
       obtain ⟨n, h', h''⟩ := List.exists_not_getElem_of_not_isChain hh
       have : n + 1 + 1 < p.support.length := by grind
       have := ne_of_adj _ <| p.isChain_adj_support.getElem n (by grind)
-      have : p.support[n] = p.support[n + 1 + 1] := by simpa [this, p.edges_eq_support] using h''
+      have : p.support[n] = p.support[n + 1 + 1] := by simpa [this, p.edges_eq_zipWith_support] using h''
       simp (disch := grind) only [hp, List.getElem_scanr, ← List.prod_eq_foldr,
         List.prod_drop_succ, List.getElem_map, ← mul_assoc, right_eq_mul, aux] at this
       have := (FreeGroup.isReduced_toWord (x := a)).getElem n (by grind)
@@ -214,7 +221,7 @@ lemma gens_of_walk_length : (gens_of_walk p).length = p.length := by simp [gens_
 private
 lemma freeGroup_mk_gens_of_walk_index {n : ℕ} (h : n + 1 < p.support.length) :
     FreeGroup.mk [(gens_of_walk p)[n]'(by grind)] = (p.getVert n) * (p.getVert (n + 1))⁻¹ := by
-  simp only [gens_of_walk, List.getElem_map, p.darts_toProd_eq]
+  simp only [gens_of_walk, List.getElem_map, p.darts_eq_getVert]
   have := p.drop n |>.adj_snd (by grind)
   simp only [Walk.drop_getVert, CG.adj_iff, Set.mem_range, FreeGroup.of] at this
   rcases this with ⟨_, yh⟩ | ⟨_, yh⟩
@@ -238,7 +245,7 @@ lemma freeGroup_mk_gens_of_walk : FreeGroup.mk (gens_of_walk p) = v * w⁻¹ := 
   rw [Walk.getVert_length] at this
   simp [← this, ← gens_of_walk_length p]
 
-theorem IsTree_of_FreeGroup (CG : CayleyGraph (FreeGroup S) (Set.range FreeGroup.of)) :
+theorem isTree_of_freeGroup (CG : CayleyGraph (FreeGroup S) (Set.range FreeGroup.of)) :
     CG.Graph.IsTree where
   isConnected := connected_iff.mpr <| FreeGroup.closure_range_of S
   IsAcyclic := by
@@ -254,18 +261,18 @@ theorem IsTree_of_FreeGroup (CG : CayleyGraph (FreeGroup S) (Set.range FreeGroup
       apply (List.Pairwise.isChain hh.1).getElem n (by grind)
       have := freeGroup_mk_sublist p n (by grind)
       rw [hl₂, freeGroup_mk_sublist p (n + 2) (by grind), mul_right_inj, inv_inj] at this
-      simp (disch := grind) [p.edges_eq_support, ← p.getVert_eq_support_getElem, ← this]
+      simp (disch := grind) [p.edges_eq_zipWith_support, ← p.getVert_eq_support_getElem, ← this]
     have : (FreeGroup.mk (gens_of_walk p)).toWord.length ≠ 0 := by
       simp_all [FreeGroup.isReduced_iff_reduce_eq.mp this, gens_of_walk_length p]
     simp [freeGroup_mk_gens_of_walk p] at this
 
 end
 
-theorem IsTree_of_FreeGroupBasis {G S : Type*} [Group G] [DecidableEq S]
+theorem isTree_of_freeGroupBasis {G S : Type*} [Group G] [DecidableEq S]
     (h : FreeGroupBasis S G) {CG : CayleyGraph G (Set.range (h.repr.symm ∘ FreeGroup.of))} :
     CG.Graph.IsTree := by
   refine (iso_of_mulEquiv CG h.repr).isTree_iff.mpr <| (iso_of_eq _ ?_).isTree_iff.mpr <|
-    IsTree_of_FreeGroup _
+    isTree_of_freeGroup _
   refine Set.ext fun x ↦ ⟨?_, by simp_all⟩
   exact fun ⟨y, ⟨z, hz⟩, hy⟩ ↦ hy ▸ ⟨z, h.repr.symm_apply_eq.mp hz⟩
 
