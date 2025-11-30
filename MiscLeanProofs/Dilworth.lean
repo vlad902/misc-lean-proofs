@@ -35,10 +35,6 @@ variable {α} {s : Set α}
   rw [← Set.encard_univ]
   exact Set.encard_le_encard (fun _ a ↦ trivial)
 
-@[simp] theorem Set.ncard_le_card [Finite α] : s.ncard ≤ Nat.card α := by
-  rw [← Set.ncard_univ]
-  exact Set.ncard_le_ncard (fun _ a ↦ trivial) Set.finite_univ
-
 theorem Set.one_le_ncard_insert (a : α) (s : Set α) [Finite ↑s] : 1 ≤ (insert a s).ncard :=
   Nat.one_le_iff_ne_zero.mpr <| Set.ncard_ne_zero_of_mem (mem_insert a s)
 
@@ -525,6 +521,7 @@ theorem minAntichainPartition_eq_chainHeight [PartialOrder α] :
         have := minAntichainPartition_le_sdiff_add_one α _ <| setOf_maximal_antichain ⊤
         have := ih _ <| ENat.addLECancellable_coe 1 |>.add_le_add_iff_right.mp <| le_trans h this
         grw [add_le_add_right this 1]
+        have := chainHeight_sdiff_add_one_le hc (maximal_inter_nonempty hc)
         simpa using chainHeight_sdiff_add_one_le hc (maximal_inter_nonempty hc)
     · grind [not_isEmpty_iff, chainHeight_eq_zero_iff, minAntichainPartition_eq_zero_iff]
 
