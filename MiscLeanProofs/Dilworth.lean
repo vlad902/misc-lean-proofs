@@ -28,70 +28,11 @@ state them.
 * `minAntichainPartition_eq_chainHeight`: Mirsky's theorem.
 -/
 
--- #29833
-section PR29833
-variable {α} {s : Set α}
-@[simp] theorem Set.encard_le_card : s.encard ≤ ENat.card α := by
-  rw [← Set.encard_univ]
-  exact Set.encard_le_encard (fun _ a ↦ trivial)
-
-theorem Set.one_le_ncard_insert (a : α) (s : Set α) [Finite ↑s] : 1 ≤ (insert a s).ncard :=
-  Nat.one_le_iff_ne_zero.mpr <| Set.ncard_ne_zero_of_mem (mem_insert a s)
-
-end PR29833
-
 section PR
 
 open Function Set IsAntichain
 
 variable {α β : Type*} {r r₁ r₂ : α → α → Prop} {r' : β → β → Prop} {s t : Set α} {a b : α}
-
--- #29835
-def IsMaxAntichain (r : α → α → Prop) (s : Set α) : Prop :=
-  IsAntichain r s ∧ ∀ ⦃t⦄, IsAntichain r t → s ⊆ t → s = t
-
-namespace IsMaxAntichain
-
-theorem isAntichain (h : IsMaxAntichain r s) : IsAntichain r s :=
-  h.1
-
-protected theorem image {s : β → β → Prop} (e : r ≃r s) {c : Set α} (hc : IsMaxAntichain r c) :
-    IsMaxAntichain s (e '' c) where
-  left := hc.isAntichain.image _ fun _ _ ↦ e.map_rel_iff'.mp
-  right t ht hf := by
-    rw [← e.coe_fn_toEquiv, ← e.toEquiv.eq_preimage_iff_image_eq, preimage_equiv_eq_image_symm]
-    exact hc.2 (ht.image _ fun _ _ ↦ e.symm.map_rel_iff.mp)
-      ((e.toEquiv.subset_symm_image _ _).2 hf)
-
-protected theorem isEmpty_iff (h : IsMaxAntichain r s) : IsEmpty α ↔ IsEmpty s := by
-  refine ⟨fun _ ↦ isEmpty_coe_sort.mpr s.eq_empty_of_isEmpty, fun h' ↦ ?_⟩
-  by_contra! hh
-  obtain ⟨x⟩ := hh
-  simp only [IsMaxAntichain, isEmpty_coe_sort.mp h', IsAntichain.empty, empty_subset, forall_const,
-    true_and] at h
-  exact singleton_ne_empty x (h IsAntichain.singleton).symm
-
-protected theorem nonempty_iff (h : IsMaxAntichain r s) : Nonempty α ↔ Nonempty s := by
-  grind [not_nonempty_iff, IsMaxAntichain.isEmpty_iff]
-
-protected theorem symm (h : IsMaxAntichain r s) : IsMaxAntichain (flip r) s :=
-  ⟨h.isAntichain.flip, fun _ ht₁ ht₂ ↦ h.2 ht₁.flip ht₂⟩
-
-end IsMaxAntichain
-
-protected theorem IsMaxChain.isEmpty_iff (h : IsMaxChain r s) : IsEmpty α ↔ IsEmpty s := by
-  refine ⟨fun _ ↦ isEmpty_coe_sort.mpr s.eq_empty_of_isEmpty, fun h' ↦ ?_⟩
-  by_contra! hh
-  obtain ⟨x⟩ := hh
-  simp only [IsMaxChain, isEmpty_coe_sort.mp h', IsChain.empty, empty_subset, forall_const,
-    true_and] at h
-  exact singleton_ne_empty x (h IsChain.singleton).symm
-
-protected theorem IsMaxChain.nonempty_iff (h : IsMaxChain r s) : Nonempty α ↔ Nonempty s := by
-  grind [not_nonempty_iff, IsMaxChain.isEmpty_iff]
-
-theorem IsMaxChain.symm (h : IsMaxChain r s) : IsMaxChain (flip r) s :=
-  ⟨h.isChain.symm, fun _ ht₁ ht₂ ↦ h.2 ht₁.symm ht₂⟩
 
 -- #29992
 
@@ -129,24 +70,6 @@ theorem IsMaxChain.exists_isMin {α : Type*} [Preorder α] (s : Set α) [Finite 
     (hs : IsMaxChain (· ≤ ·) s) : ∃ x : α, x ∈ s ∧ IsMin x :=
   hs.symm.exists_isMax (α := αᵒᵈ) h
 
--- #30003
-
-theorem IsAntichain.coe_univ {α : Type*} {r : α → α → Prop} {s : Set α} (h : IsAntichain r s) :
-    @IsAntichain ↑s (r ↑· ↑·) Set.univ :=
-  fun a _ b _ hne ↦  @h a a.property b b.property (Subtype.coe_ne_coe.mpr hne)
-
-theorem IsAntichain.sdiff {α : Type*} {r : α → α → Prop} {s t : Set α} (h : IsAntichain r s) :
-    IsAntichain r (s \ t) :=
-  fun a ha b hb hne ↦ @h a (Set.mem_of_mem_inter_left ha) b (Set.mem_of_mem_inter_left hb) hne
-
-theorem IsChain.coe_univ {α : Type*} {r : α → α → Prop} {s : Set α} (h : IsChain r s) :
-    @IsChain ↑s (r ↑· ↑·) Set.univ :=
-  fun a _ b _ hne ↦  @h a a.property b b.property (Subtype.coe_ne_coe.mpr hne)
-
-theorem IsChain.sdiff {α : Type*} {r : α → α → Prop} {s t : Set α} (h : IsChain r s) :
-    IsChain r (s \ t) :=
-  fun a ha b hb hne ↦ @h a (Set.mem_of_mem_inter_left ha) b (Set.mem_of_mem_inter_left hb) hne
-
 end PR
 
 section height
@@ -161,7 +84,7 @@ theorem chainHeight_eq_biInf :
   chainHeight α r = ⨆ s : {s : Set α // IsChain r s}, s.val.encard := rfl
 
 theorem chainHeight_le_card : chainHeight α r ≤ ENat.card α := by
-  simp [chainHeight_eq_biInf]
+  simp [chainHeight_eq_biInf, Set.encard_le_card]
 
 theorem chainHeight_ne_top_of_finite [Finite α] : chainHeight α r ≠ ⊤ := by
   obtain ⟨n, hn₁, hn₂⟩ := le_coe_iff.mp <| card_eq_coe_natCard α ▸ (chainHeight_le_card α r)
@@ -252,7 +175,7 @@ theorem antichainWidth_eq_biInf :
   antichainWidth α r = ⨆ s : {s : Set α // IsAntichain r s}, s.val.encard := rfl
 
 theorem antichainWidth_le_card : antichainWidth α r ≤ ENat.card α := by
-  simp [antichainWidth_eq_biInf]
+  simp [antichainWidth_eq_biInf, Set.encard_le_card]
 
 theorem antichainWidth_ne_top_of_finite [Finite α] : antichainWidth α r ≠ ⊤ := by
   obtain ⟨n, hn₁, hn₂⟩ := le_coe_iff.mp <| card_eq_coe_natCard α ▸ (antichainWidth_le_card α r)
@@ -466,7 +389,7 @@ theorem chainHeight_le_minAntichainPartition : chainHeight α r ≤ minAntichain
 theorem maximal_inter_nonempty {α} [Preorder α] [Nonempty α] (hc : chainHeight α (· ≤ ·) ≠ ⊤)
     {s : Set α} (hs : IsMaxChain (· ≤ ·) s) : ({x | Maximal ⊤ x} ∩ s).Nonempty := by
   have : Finite s := finite_of_chainHeight_ne_top hs.isChain hc
-  obtain ⟨k, hk₁, hk₂⟩ := hs.exists_isMax <| hs.nonempty_iff.mp (by assumption)
+  obtain ⟨k, hk₁, hk₂⟩ := hs.exists_isMax <| Set.nonempty_iff_ne_empty'.mpr <| hs.nonempty_iff.mp (by assumption)
   exact ⟨k, Set.mem_inter (by simp [Pi.top_def, hk₂]) hk₁⟩
 
 theorem chainHeight_sdiff_add_one_le {α} {r} (hc : chainHeight α r ≠ ⊤) {s : Set α}
@@ -520,7 +443,7 @@ theorem minAntichainPartition_eq_chainHeight [PartialOrder α] :
       · simp only [Nat.cast_add, Nat.cast_one]
         have := minAntichainPartition_le_sdiff_add_one α _ <| setOf_maximal_antichain ⊤
         have := ih _ <| ENat.addLECancellable_coe 1 |>.add_le_add_iff_right.mp <| le_trans h this
-        grw [add_le_add_right this 1]
+        grw [add_le_add_left this 1]
         have := chainHeight_sdiff_add_one_le hc (maximal_inter_nonempty hc)
         simpa using chainHeight_sdiff_add_one_le hc (maximal_inter_nonempty hc)
     · grind [not_isEmpty_iff, chainHeight_eq_zero_iff, minAntichainPartition_eq_zero_iff]
@@ -609,12 +532,12 @@ theorem pigeonhole_delete_largest {α} {r} {C : Set (Set α)} (hC₁ : IsChainPa
   · obtain ⟨b, hb₁, hb₂⟩ := exists_of_antichainWidth_ne_top α r hnetop
     let n : Set ↑(Set.univ \ d) := ((fun x ↦ ⟨x.1, by grind⟩) '' (@Set.univ ↑(b \ d)))
     have hna : @IsAntichain ↑(Set.univ \ d) (r · ·) n :=
-      IsAntichain.image hb₂.sdiff.coe_univ _ (fun ⦃a_1 b⦄ a ↦ a)
+      IsAntichain.image (isAntichain_coe_univ_iff.mpr hb₂.diff) _ (fun _ _ a ↦ a)
     have hbne : b.encard ≤ n.encard + 1 := by
       rw [Function.Injective.encard_image <| Set.inclusion_injective (by grind)]
       simp only [← Set.encard_diff_add_encard_of_subset (by grind : (b \ d) ⊆ b),
         sdiff_sdiff_right_self, Set.inf_eq_inter, Set.encard_univ, add_comm (b ∩ d).encard]
-      refine add_le_add_left (Set.encard_le_one_iff_subsingleton.mpr ?_) (b \ d).encard
+      refine add_le_add_right (Set.encard_le_one_iff_subsingleton.mpr ?_) (b \ d).encard
       exact inter_subsingleton_of_isAntichain_of_isChain hb₂ hd
     grw [hn, ← hb₁, hbne, encard_le_antichainWidth hna]
   · grw [hn]
@@ -715,7 +638,7 @@ theorem minChainPartition_eq_antichainWidth [PartialOrder α] [Finite α] :
             Set.mem_singleton_iff, true_and, exists_and_right, exists_eq_right, ne_eq, forall_eq,
             forall_exists_index, and_imp, Z]
           exact fun _ _ _ hle _ ↦ Or.inl <| le_trans (Subtype.coe_le_coe.mp hle) hx
-      have Keq₁ := ih (n + 1 - K.ncard) (by simp [K, Set.one_le_ncard_insert]) ↑(Set.univ \ K)
+      have Keq₁ := ih (n + 1 - K.ncard) (by simp [K, Set.one_le_ncard_insert a]) ↑(Set.univ \ K)
         (by simp [hcard, Set.ncard_diff (s := K)])
       have Keq₂ : antichainWidth ↑(Set.univ \ K) (· ≤ ·) + 1 = A.encard:= by
         have : antichainWidth ↑(Set.univ \ K) (· ≤ ·) = antichainWidth ↑(Set.univ \ Z) (· ≤ ·) := by

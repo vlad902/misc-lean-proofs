@@ -127,7 +127,7 @@ theorem bijective_neighborSetMap (CG : CayleyGraph G S) (v : G) :
     have := x.2
     simp_all [neighborSet, CG.adj_iff, or_comm]
   ⟩
-  apply Set.bijective_iff_bijOn_univ.mpr <| Set.BijOn.mk (by simp) ?_ ?_
+  apply Set.bijOn_univ.mp <| Set.BijOn.mk (by simp) ?_ ?_
   · exact Set.LeftInvOn.injOn (f₁' := inv) (fun x _ ↦ by simp [neighborSetMap, inv])
   · exact Set.LeftInvOn.surjOn (f := inv) (fun x _ ↦ by simp [neighborSetMap, inv]) (by simp)
 
@@ -184,7 +184,7 @@ theorem isFreeGroup_of_isTree [DecidableEq S] (h₁ : CG.Graph.IsTree) (h₂ : �
       rw [← Walk.length_support p, hp]
       induction a.toWord <;> simp
     have : p.IsPath := by
-      apply Walk.IsTree.isPath_of_list_chain h₁ p |>.mpr
+      apply IsAcyclic.isPath_iff_isChain h₁.IsAcyclic p |>.mpr
       by_contra hh
       obtain ⟨n, h', h''⟩ := List.exists_not_getElem_of_not_isChain hh
       have : n + 1 + 1 < p.support.length := by grind
@@ -221,7 +221,7 @@ lemma gens_of_walk_length : (gens_of_walk p).length = p.length := by simp [gens_
 private
 lemma freeGroup_mk_gens_of_walk_index {n : ℕ} (h : n + 1 < p.support.length) :
     FreeGroup.mk [(gens_of_walk p)[n]'(by grind)] = (p.getVert n) * (p.getVert (n + 1))⁻¹ := by
-  simp only [gens_of_walk, List.getElem_map, p.darts_eq_getVert]
+  simp only [gens_of_walk, List.getElem_map, p.darts_getElem_eq_getVert]
   have := p.drop n |>.adj_snd (by grind)
   simp only [Walk.drop_getVert, CG.adj_iff, Set.mem_range, FreeGroup.of] at this
   rcases this with ⟨_, yh⟩ | ⟨_, yh⟩
