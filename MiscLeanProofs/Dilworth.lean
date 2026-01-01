@@ -36,9 +36,9 @@ variable {α β : Type*} {r r₁ r₂ : α → α → Prop} {r' : β → β → 
 
 -- #29992
 
-theorem IsChain.exists_isTop {α : Type*} [Preorder α] (s : Set α) [Finite s] (h : Nonempty s)
+theorem IsChain.exists_isTop {α : Type*} [Preorder α] (s : Set α) [Finite s] (h : s.Nonempty)
     (hs : IsChain (· ≤ ·) s) : ∃ x : s, IsTop x := by
-  obtain ⟨x, hx₁, hx₂⟩ := s.toFinite.exists_maximal (Set.nonempty_coe_sort.mp h)
+  obtain ⟨x, hx₁, hx₂⟩ := s.toFinite.exists_maximal h
   refine ⟨⟨x, hx₁⟩, fun a ↦ ?_⟩
   by_cases h' : x = a.1
   · simp [h']
@@ -46,14 +46,14 @@ theorem IsChain.exists_isTop {α : Type*} [Preorder α] (s : Set α) [Finite s] 
     · exact hx₂ a.2 h''
     · exact h''
 
-theorem IsChain.exists_isBot {α : Type*} [Preorder α] (s : Set α) [Finite s] (h : Nonempty s)
+theorem IsChain.exists_isBot {α : Type*} [Preorder α] (s : Set α) [Finite s] (h : s.Nonempty)
     (hs : IsChain (· ≤ ·) s) : ∃ x : s, IsBot x :=
   hs.symm.exists_isTop (α := αᵒᵈ) s h
 
-theorem IsMaxChain.exists_isMax {α : Type*} [Preorder α] {s : Set α} [Finite s] (h : Nonempty s)
+theorem IsMaxChain.exists_isMax {α : Type*} [Preorder α] {s : Set α} [Finite s] (h : s.Nonempty)
     (hs : IsMaxChain (· ≤ ·) s) : ∃ x : α, x ∈ s ∧ IsMax x := by
   by_contra! hh
-  obtain ⟨x, hx₁, hx₂⟩ := s.toFinite.exists_maximal (Set.nonempty_coe_sort.mp (by assumption))
+  obtain ⟨x, hx₁, hx₂⟩ := s.toFinite.exists_maximal h
   have := hh x hx₁
   simp only [IsMax, not_forall] at this
   obtain ⟨z, hz₁, hz₂⟩ := this
@@ -66,7 +66,7 @@ theorem IsMaxChain.exists_isMax {α : Type*} [Preorder α] {s : Set α} [Finite 
   rw [hs.2 this (by simp)]
   simp
 
-theorem IsMaxChain.exists_isMin {α : Type*} [Preorder α] (s : Set α) [Finite s] (h : Nonempty s)
+theorem IsMaxChain.exists_isMin {α : Type*} [Preorder α] (s : Set α) [Finite s] (h : s.Nonempty)
     (hs : IsMaxChain (· ≤ ·) s) : ∃ x : α, x ∈ s ∧ IsMin x :=
   hs.symm.exists_isMax (α := αᵒᵈ) h
 
@@ -389,7 +389,7 @@ theorem chainHeight_le_minAntichainPartition : chainHeight α r ≤ minAntichain
 theorem maximal_inter_nonempty {α} [Preorder α] [Nonempty α] (hc : chainHeight α (· ≤ ·) ≠ ⊤)
     {s : Set α} (hs : IsMaxChain (· ≤ ·) s) : ({x | Maximal ⊤ x} ∩ s).Nonempty := by
   have : Finite s := finite_of_chainHeight_ne_top hs.isChain hc
-  obtain ⟨k, hk₁, hk₂⟩ := hs.exists_isMax <| Set.nonempty_iff_ne_empty'.mpr <| hs.nonempty_iff.mp (by assumption)
+  obtain ⟨k, hk₁, hk₂⟩ := hs.exists_isMax <| hs.nonempty_iff.mp (by assumption)
   exact ⟨k, Set.mem_inter (by simp [Pi.top_def, hk₂]) hk₁⟩
 
 theorem chainHeight_sdiff_add_one_le {α} {r} (hc : chainHeight α r ≠ ⊤) {s : Set α}
@@ -598,12 +598,13 @@ theorem overlap_top_encard_eq {α} [Finite α] [PartialOrder α] {C : Set (Set �
     simp only [← heq] at hsc₁
     exact SetCoe.ext <| by simpa using le_antisymm (hsc₂ ⟨b, hsb₁⟩) (hsb₂ ⟨c, hsc₁⟩)
   · intro b
-    have (c : C) : Nonempty (overlap_antichain C c) := by
+    have (c : C) : (overlap_antichain C c).Nonempty := by
+      apply Set.nonempty_coe_sort.mp
       simp only [Set.coe_setOf, nonempty_subtype]
       obtain ⟨b, hb⟩ := pigeonhole_inter_eq hC hA₁ hA₂ c.1 c.2
       rw [Set.eq_singleton_iff_unique_mem] at hb
       exact ⟨b, by grind, ⟨A, by grind, hA₂, hA₁⟩⟩
-    obtain ⟨i, hi⟩ := hC.2 b.1 b.2 |>.mono (by grind) |>.exists_isTop _ (this ⟨b.1, b.2⟩)
+    obtain ⟨i, hi⟩ := hC.2 b.1 b.2 |>.mono (by grind) |>.exists_isTop _ (this b)
     use ⟨i.1, by grind⟩
     obtain ⟨d, hd₁, hd₂⟩ := hC.1 i
     grind [Classical.choose_spec]
