@@ -15,7 +15,7 @@ to satisfy representing the graph as a SimpleGraph.
 
 The main results are `isFreeGroup_of_isTree` and `isTree_of_freeGroupBasis` proving that Cayley
 graphs of free groups are trees and that Cayley graphs are trees if they satisfy a condition on
-the generating set. conditions under which a Cayley Graph is a tree.
+the generating set.
 
 Some small lemmas about when Cayley graphs are connected/trees/locally finite.
 
@@ -32,9 +32,7 @@ structure CayleyGraph (G : Type*) [Group G] (S : Set G) where
 
 namespace CayleyGraph
 
-attribute [local grind =] Walk.length_edges Walk.length_support Walk.not_nil_iff_lt_length
-  Walk.drop_length
-attribute [local grind =] inv_inv inv_mul_eq_one mul_inv_eq_one
+attribute [local grind =] Walk.not_nil_iff_lt_length Walk.drop_length inv_inv inv_mul_eq_one mul_inv_eq_one
 
 section
 
@@ -77,8 +75,8 @@ def iso_of_eq {S₁ S₂ : Set G} (CG : CayleyGraph G S₁) (h : S₁ = S₂) :
     CG.Graph ≃g (pushforward_generators CG h).Graph where
   toFun := id
   invFun := id
-  left_inv := fun _ ↦ rfl
-  right_inv := fun _ ↦ rfl
+  left_inv _ := rfl
+  right_inv _ := rfl
   map_rel_iff' {x y} := by simp [h, Graph]
 
 variable {CG : CayleyGraph G S}
@@ -123,10 +121,8 @@ def neighborSetMap (CG : CayleyGraph G S) (v : G) (x : (S ∪ S⁻¹ : Set G)) :
 
 theorem bijective_neighborSetMap (CG : CayleyGraph G S) (v : G) :
     Function.Bijective (neighborSetMap CG v) := by
-  let inv : CG.Graph.neighborSet v → (S ∪ S⁻¹ : Set G) := fun x => ⟨x.1 * v⁻¹, by
-    have := x.2
-    simp_all [neighborSet, CG.adj_iff, or_comm]
-  ⟩
+  let inv (x : CG.Graph.neighborSet v) : (S ∪ S⁻¹ : Set G) :=
+    ⟨x.1 * v⁻¹, by simpa [neighborSet, CG.adj_iff, or_comm] using x.2⟩
   apply Set.bijOn_univ.mp <| Set.BijOn.mk (by simp) ?_ ?_
   · exact Set.LeftInvOn.injOn (f₁' := inv) (fun x _ ↦ by simp [neighborSetMap, inv])
   · exact Set.LeftInvOn.surjOn (f := inv) (fun x _ ↦ by simp [neighborSetMap, inv]) (by simp)
@@ -179,12 +175,9 @@ theorem isFreeGroup_of_isTree [DecidableEq S] (h₁ : CG.Graph.IsTree) (h₂ : �
       rw [this, FreeGroup.mk_toWord]
     obtain ⟨p, hp⟩ := walk_of_generator_list (v := (FreeGroup.lift ι) a) (w := 1) (CG := CG)
       a.toWord (by simp [this])
-    have hlen : p.length = a.toWord.length := by
-      apply Nat.add_one_inj.mp
-      rw [← Walk.length_support p, hp]
-      induction a.toWord <;> simp
+    have hlen : p.length = a.toWord.length := by grind
     have : p.IsPath := by
-      apply IsAcyclic.isPath_iff_isChain h₁.IsAcyclic p |>.mpr
+      apply h₁.IsAcyclic.isPath_iff_isChain p |>.mpr
       by_contra hh
       obtain ⟨n, h', h''⟩ := List.exists_not_getElem_of_not_isChain hh
       have : n + 1 + 1 < p.support.length := by grind
@@ -251,14 +244,10 @@ theorem isTree_of_freeGroup (CG : CayleyGraph (FreeGroup S) (Set.range FreeGroup
   IsAcyclic := by
     intro v p hh
     rw [Walk.isCycle_def, Walk.isTrail_def] at hh
-    have hnil : ¬p.Nil := by
-      have := hh.2.1
-      contrapose! this
-      exact Walk.nil_iff_eq_nil.mp this
     have : FreeGroup.IsReduced (gens_of_walk p) := by
       by_contra hhh
       obtain ⟨n, hl₁, hl₂⟩ := FreeGroup.exists_of_not_reduced hhh
-      apply (List.Pairwise.isChain hh.1).getElem n (by grind)
+      apply hh.1.isChain.getElem n (by grind)
       have := freeGroup_mk_sublist p n (by grind)
       rw [hl₂, freeGroup_mk_sublist p (n + 2) (by grind), mul_right_inj, inv_inj] at this
       simp (disch := grind) [p.edges_eq_zipWith_support, ← p.getVert_eq_support_getElem, ← this]
