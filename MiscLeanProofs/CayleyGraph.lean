@@ -40,8 +40,8 @@ variable {G : Type*} [Group G] {S : Set G} (CG : CayleyGraph G S)
 
 def Graph : SimpleGraph G where
   Adj x y := x * y⁻¹ ∈ S ∨ y * x⁻¹ ∈ S
-  symm _ _ h := h.symm
-  loopless _ := by simp [CG.one_not_mem]
+  symm.symm _ _ h := h.symm
+  loopless.irrefl _ := by simp [CG.one_not_mem]
 
 theorem adj_iff {x y} : CG.Graph.Adj x y ↔ x * y⁻¹ ∈ S ∨ y * x⁻¹ ∈ S := by
   constructor <;> exact id
@@ -60,13 +60,13 @@ def iso_of_mulEquiv {H : Type*} [Group H] (e : G ≃* H) :
   map_rel_iff' {x y} := by
     refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
     · rcases h with ⟨s, hsS, hs⟩ | ⟨s, hsS, hs⟩
-      · have : e (x * y⁻¹) = e s := by simpa using hs.symm
+      · have : e (x * y⁻¹) = e s := by simp [hs]; rfl
         simp [adj_iff, Set.mem_of_eq_of_mem (e.injective this) hsS]
-      · have : e (y * x⁻¹) = e s := by simpa using hs.symm
+      · have : e (y * x⁻¹) = e s := by simp [hs]; rfl
         simp [adj_iff, Set.mem_of_eq_of_mem (e.injective this) hsS]
     · rcases h with h' | h'
-      · exact Or.inl ⟨x * y⁻¹, h', by simp [MulEquiv.map_mul, MulEquiv.map_inv]⟩
-      · exact Or.inr ⟨y * x⁻¹, h', by simp [MulEquiv.map_mul, MulEquiv.map_inv]⟩
+      · exact Or.inl ⟨x * y⁻¹, h', by simp [MulEquiv.map_mul, MulEquiv.map_inv]; rfl⟩
+      · exact Or.inr ⟨y * x⁻¹, h', by simp [MulEquiv.map_mul, MulEquiv.map_inv]; rfl⟩
 
 theorem pushforward_generators {S₁ S₂ : Set G} (CG : CayleyGraph G S₁) (h : S₁ = S₂) : CayleyGraph G S₂ :=
   ⟨h ▸ CG.one_not_mem⟩
@@ -177,7 +177,7 @@ theorem isFreeGroup_of_isTree [DecidableEq S] (h₁ : CG.Graph.IsTree) (h₂ : �
       a.toWord (by simp [this])
     have hlen : p.length = a.toWord.length := by grind
     have : p.IsPath := by
-      apply h₁.IsAcyclic.isPath_iff_isChain p |>.mpr
+      apply h₁.isAcyclic.isPath_iff_isChain p |>.mpr
       by_contra hh
       obtain ⟨n, h', h''⟩ := List.exists_not_getElem_of_not_isChain hh
       have : n + 1 + 1 < p.support.length := by grind
@@ -193,7 +193,7 @@ theorem isFreeGroup_of_isTree [DecidableEq S] (h₁ : CG.Graph.IsTree) (h₂ : �
     rw [← hpath (Walk.nil.copy h.symm rfl) (by simp)] at this
     simp [List.eq_nil_iff_length_eq_zero, ← hlen, this]
   · rw [← MonoidHom.range_eq_top, FreeGroup.range_lift_eq_closure, Subtype.range_val]
-    exact connected_iff.mp h₁.isConnected
+    exact connected_iff.mp h₁.connected
 
 end
 
@@ -240,8 +240,8 @@ lemma freeGroup_mk_gens_of_walk : FreeGroup.mk (gens_of_walk p) = v * w⁻¹ := 
 
 theorem isTree_of_freeGroup (CG : CayleyGraph (FreeGroup S) (Set.range FreeGroup.of)) :
     CG.Graph.IsTree where
-  isConnected := connected_iff.mpr <| FreeGroup.closure_range_of S
-  IsAcyclic := by
+  preconnected := Connected.preconnected <| connected_iff.mpr <| FreeGroup.closure_range_of S
+  isAcyclic := by
     intro v p hh
     rw [Walk.isCycle_def, Walk.isTrail_def] at hh
     have : FreeGroup.IsReduced (gens_of_walk p) := by

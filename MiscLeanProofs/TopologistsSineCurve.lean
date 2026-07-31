@@ -2,7 +2,7 @@
 
 import Mathlib.Analysis.Normed.Order.Lattice
 import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Data.Real.StarOrdered
+import Mathlib.Algebra.Order.Star.Real
 import Mathlib.Geometry.Manifold.Instances.Real
 import Mathlib.Order.CompletePartialOrder
 import Mathlib.Tactic.Rify
